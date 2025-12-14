@@ -5,9 +5,11 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/ui.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../foto/foto_modell.php';
 
 $db = db();
+require_login();
 
 // --------------------------------------------------
 // INPUT
@@ -16,6 +18,9 @@ $fotoId = filter_input(INPUT_GET, 'Foto_ID', FILTER_VALIDATE_INT);
 if (!$fotoId) {
     redirect('primus_main.php');
 }
+
+// Steg A: aktiv record (Access-ekvivalent)
+$_SESSION['aktiv_foto_id'] = $fotoId;
 
 // --------------------------------------------------
 // POST: lagre foto
@@ -33,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // --------------------------------------------------
 $foto = foto_hent_en($db, $fotoId);
 if (!$foto) {
+    unset($_SESSION['aktiv_foto_id']);
     redirect('primus_main.php');
 }
 ?>
@@ -117,27 +123,42 @@ function oppdaterFotoState() {
 
         const data = json.data;
 
-        // Enable / disable felter
+       // Enable / disable felter (1:1 Access)
         Object.entries(data.felter || {}).forEach(([id, enabled]) => {
             const el = document.getElementById(id);
             if (!el) {
                 console.debug('Fant ikke felt i DOM:', id);
                 return;
             }
+
+            // Hendelse er systemstyrt: alltid readonly, aldri disabled
+            if (id === 'Hendelse') {
+                el.readOnly = true;
+                el.disabled = false;
+                return;
+            }
+
             el.disabled = !enabled;
-            el.style.outline = enabled ? '2px solid green' : '2px solid red'; // midlertidig synliggjøring
         });
 
-        // Tøm felter
+        // Tøm felter som skal tømmes (Access-ekvivalent)
+        // NB: Hendelse skal aldri tømmes
         (data.skalTommes || []).forEach(id => {
+            if (id === 'Hendelse') return;
+
             const el = document.getElementById(id);
             if (!el) {
                 console.debug('Kan ikke tømme – finnes ikke:', id);
                 return;
             }
-            if (el.type === 'checkbox') el.checked = false;
-            else el.value = '';
+
+            if (el.type === 'checkbox') {
+                el.checked = false;
+            } else {
+                el.value = '';
+            }
         });
+
 
         // Sett avledede verdier
         Object.entries(data.verdier || {}).forEach(([id, value]) => {

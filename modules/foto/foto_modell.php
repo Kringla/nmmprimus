@@ -74,11 +74,21 @@ function foto_lagre(PDO $db, array $data): int
 
         $params['Foto_ID'] = (int)$data['Foto_ID'];
 
+        // Steg A: hindre overskriving – kun aktiv Foto_ID kan oppdateres
+        if (
+            !isset($_SESSION['aktiv_foto_id']) ||
+            (int)$_SESSION['aktiv_foto_id'] !== $params['Foto_ID']
+        ) {
+            // Stille avvisning (Access-ekvivalent)
+            return (int)$data['Foto_ID'];
+        }
+
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
 
         return (int)$data['Foto_ID'];
     }
+
 
     // INSERT
     $sql = "

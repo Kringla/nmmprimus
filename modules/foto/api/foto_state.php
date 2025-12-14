@@ -7,7 +7,10 @@ declare(strict_types=1);
  * Ingen databaseavhengighet
  */
 
-require_once __DIR__ . '/../../../includes/foto_flyt.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/nmmprimus/includes/db.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/nmmprimus/includes/foto_flyt.php';
+
+session_start();
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -31,18 +34,45 @@ $felter   = foto_felt_tilstand($iCh);
 $verdier  = foto_avledede_verdier($iCh);
 
 // --------------------------------------------------
-// Hendelse-tekst (kodebasert, midlertidig)
+// Hendelse-tekst (1:1 Access, DB-basert)
 // --------------------------------------------------
-$hendelseMap = [
-    1 => '',
-    2 => "101,Fotografi",
-    3 => "104,Samling",
-    4 => "101,Fotografi\n104,Samling",
-    5 => "105,Annet",
-    6 => "101,Fotografi\n104,Samling\n105,Annet",
+
+// Mapping iCh → Kode(r) (Access-ekvivalent)
+$kodeMap = [
+    1 => [],
+    2 => [101],
+    3 => [104],
+    4 => [101, 104],
+    5 => [105],
+    6 => [101, 104, 105],
 ];
 
-$verdier['Hendelse'] = $hendelseMap[$iCh] ?? '';
+$verdier['Hendelse'] = '';
+
+$koder = $kodeMap[$iCh] ?? [];
+
+if ($koder) {
+    $db = db();
+
+    $placeholders = implode(',', array_fill(0, count($koder), '?'));
+    $stmt = $db->prepare("
+        SELECT Kode, Hendelsestype, ROWID
+        FROM _zhendelsestyper
+        WHERE Kode IN ($placeholders)
+        ORDER BY Kode
+    ");
+    $stmt->execute($koder);
+
+    $linjer = [];
+    while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        // Access-format: Kode,Hendelsestype,ROWID
+        $linjer[] = $r['Kode'] . ',' . $r['Hendelsestype'] . ',' . $r['ROWID'];
+    }
+
+    // vbCrLf-ekvivalent i textarea/JS
+    $verdier['Hendelse'] = implode("\n", $linjer);
+}
+
 
 // --------------------------------------------------
 // Felter som skal tømmes
