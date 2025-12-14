@@ -91,6 +91,47 @@ function foto_lagre(PDO $db, array $data): int
 
 
     // INSERT
+        // --------------------------------------------------
+    // Access-ekvivalent: UpdateURLFields()
+    // --------------------------------------------------
+
+    // Serie må være tilgjengelig (valgt i primus_main)
+    if (empty($data['Serie'])) {
+        throw new RuntimeException('Serie mangler ved opprettelse av nytt foto');
+    }
+
+    $serie = $data['Serie'];
+
+    // Finn neste ledige SerNr innen samme serie
+    $stmt = $db->prepare("
+        SELECT MAX(SerNr) AS max_sernr
+        FROM nmmfoto
+        WHERE Bilde_Fil LIKE :serie
+    ");
+    $stmt->execute([
+        'serie' => $serie . '-%'
+    ]);
+
+    $max = (int)($stmt->fetchColumn() ?? 0);
+    $serNr = $max + 1;
+
+    // Format: 3 sifre, ledende nuller
+    $serNrFmt = str_pad((string)$serNr, 3, '0', STR_PAD_LEFT);
+
+    // Bilde_Fil: SERIE-001
+    $data['SerNr'] = $serNr;
+    $data['Bilde_Fil'] = $serie . '-' . $serNrFmt;
+
+    // URL_Bane: cURL + Serie + "-001-999 Damp og Motor"
+    // Access: Public Const cURL
+    $cURL = 'M:\\NMM\\Bibliotek\\Foto\\NSM.TUSEN-SERIE\\';
+
+    $data['URL_Bane'] =
+        $cURL .
+        $serie .
+        '-001-999 Damp og Motor';
+
+        
     $sql = "
         INSERT INTO nmmfoto
         (" . implode(', ', $insertFelter) . ")

@@ -59,7 +59,30 @@ function foto_felt_tilstand(int $iCh): array
 // --------------------------------------------------
 function foto_avledede_verdier(int $iCh): array
 {
-    return [
-        'Hendelse' => '',
-    ];
+    $verdier = [];
+
+    // ---------------------------------------------
+    // Access: Fotografi settes eksplisitt
+    // iCh = 2,4,6 → True
+    // ---------------------------------------------
+    $verdier['Fotografi'] = in_array($iCh, [2, 4, 6], true) ? 1 : 0;
+
+    // ---------------------------------------------
+    // Access: Aksesjon / Samling / FriKopi
+    // iCh = 3,4,6
+    // ---------------------------------------------
+    if (in_array($iCh, [3, 4, 6], true)) {
+        $verdier['Aksesjon'] = 1;
+        $verdier['Samling']  = 'C2-Johnsen, Per-Erik';
+        $verdier['FriKopi']  = 0;
+    } else {
+        $verdier['Aksesjon'] = 0;
+        $verdier['Samling']  = '';
+        $verdier['FriKopi']  = 1;
+    }
+
+    // Hendelse-tekst settes fortsatt i foto_state.php
+    // (bevisst: DB-avhengig logikk holdes der)
+    return $verdier;
 }
+
