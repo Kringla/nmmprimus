@@ -130,6 +130,21 @@ function foto_lagre(PDO $db, array $data): int
     return (int)$db->lastInsertId();
 }
 
+// --------------------------------------------------
+// Opprett nytt foto (Primus)
+// --------------------------------------------------
+function foto_opprett_ny(PDO $db, array $data = []): int
+{
+    // Minimumsverdier – detaljer fylles i primus_detalj.php
+    $data = array_merge([
+        'SerNr'      => 0,
+        'Bilde_Fil'  => '',
+        'MotivBeskr' => ''
+    ], $data);
+
+    return foto_lagre($db, $data);
+}
+
 /**
  * Kopier foto (Access: cmdKopier)
  */

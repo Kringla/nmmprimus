@@ -25,49 +25,6 @@ html, body {
     padding: 1rem;
 }
 
-.site-header {
-    background: #1f2933;
-    color: #fff;
-}
-
-.site-header-inner {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0.75rem 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.site-title a {
-    color: #fff;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.site-nav a {
-    color: #cbd5e0;
-    text-decoration: none;
-    margin-left: 1rem;
-}
-
-.site-nav a:hover {
-    text-decoration: underline;
-}
-
-.site-footer {
-    background: #e5e7eb;
-    margin-top: 3rem;
-}
-
-.site-footer small {
-    color: #555;
-}
-
-.page-main {
-    padding-top: 1.5rem;
-}
-
 /* Typography */
 h1, h2, h3 {
     margin-top: 0;
@@ -94,33 +51,7 @@ h1, h2, h3 {
     padding: 1rem;
 }
 
-/* Tables */
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid #e5e7eb;
-    text-align: left;
-    vertical-align: top;
-}
-
-th {
-    background: #f3f4f6;
-    font-weight: 600;
-}
-
-tr:hover td {
-    background: #fafafa;
-}
-
 /* Forms */
-.form-group {
-    margin-bottom: 1rem;
-}
-
 label {
     display: block;
     margin-bottom: 0.25rem;
@@ -128,8 +59,7 @@ label {
 }
 
 input[type="text"],
-input[type="email"],
-input[type="password"],
+input[type="number"],
 select,
 textarea {
     width: 100%;
@@ -143,13 +73,14 @@ textarea {
     resize: vertical;
 }
 
-.form-inline {
+.form-check {
     display: flex;
     align-items: center;
+    gap: 0.4rem;
 }
 
-.checkbox input {
-    margin-right: 0.4rem;
+.form-check input {
+    margin: 0;
 }
 
 /* Buttons */
@@ -172,33 +103,9 @@ textarea {
     background: #1d4ed8;
 }
 
-.btn-link {
-    background: none;
-    border: none;
-    color: #2563eb;
-    padding: 0;
-}
-
-/* Alerts */
-.alert {
-    padding: 0.75rem 1rem;
-    border-radius: 3px;
-    margin-bottom: 1rem;
-}
-
-.alert-info {
-    background: #e0f2fe;
-    border: 1px solid #7dd3fc;
-}
-
-.alert-success {
-    background: #dcfce7;
-    border: 1px solid #86efac;
-}
-
-.alert-error {
-    background: #fee2e2;
-    border: 1px solid #fca5a5;
+.btn-secondary {
+    background: #e5e7eb;
+    color: #111;
 }
 
 /* Utility */
@@ -206,46 +113,84 @@ textarea {
     color: #666;
 }
 
-/* =========================================
-   Hendelser (fmeHendelse) – horisontal layout
-   ========================================= */
+/* =================================================
+   Hendelsesmodus – horisontal layout
+   ================================================= */
 .hendelser-rad {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 1.25rem;
+    margin-bottom: 1rem;
 }
 
 .hendelser-rad .form-check {
-    display: inline-flex;
-    align-items: center;
-    margin-bottom: 0;
+    white-space: nowrap;
 }
 
-/* Primus – to-kolonners layout */
-.row {
+/* =================================================
+   Primus tabs (uten Bootstrap)
+   ================================================= */
+.primus-tabs {
+    margin-top: 1rem;
+}
+
+.primus-tabbar {
     display: flex;
-    gap: 1rem;
+    gap: 0.5rem;
+    border-bottom: 1px solid #cfcfcf;
+    margin-bottom: 0.75rem;
 }
 
-.col-md-4 {
-    flex: 0 0 30%;
+.primus-tab {
+    background: #f3f3f3;
+    border: 1px solid #cfcfcf;
+    border-bottom: none;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
 }
 
-.col-md-8 {
-    flex: 1;
+.primus-tab.is-active {
+    background: #fff;
+    font-weight: 600;
 }
 
-tr.valgt-kandidat {
-    background-color: #e6f0ff;
+.primus-pane {
+    display: none;
 }
 
-#kandidat-tbody,
-#kandidat-tbody tr,
-#kandidat-tbody td {
-    pointer-events: auto;
+.primus-pane.is-active {
+    display: block;
 }
 
-.card-body {
-    pointer-events: auto;
+/* =================================================
+   iCh – VISUELL STATUS (robust, deterministisk)
+   ================================================= */
+
+/* AKTIVE felt */
+input[data-foto-state="aktiv"],
+textarea[data-foto-state="aktiv"],
+select[data-foto-state="aktiv"] {
+    border: 2px solid #198754 !important;
+    background-color: #f6fffa !important;
+    color: #222;
+    opacity: 1;
 }
 
+/* INAKTIVE felt */
+input[data-foto-state="inaktiv"],
+textarea[data-foto-state="inaktiv"],
+select[data-foto-state="inaktiv"] {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5 !important;
+    color: #222;
+    opacity: 1;
+}
+
+/* Finjustering Primus-skjema */
+.primus-pane hr {
+    margin: 1rem 0;
+    border: none;
+    border-top: 1px solid #e5e7eb;
+}
