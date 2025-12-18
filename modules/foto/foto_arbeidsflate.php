@@ -23,6 +23,11 @@ declare(strict_types=1);
     <legend><strong>Motiv</strong></legend>
 
     <div class="mb-3">
+        <label for="FTO" class="form-label">FTO (fra valgt fartøy)</label>
+        <textarea class="form-control" id="FTO" rows="2" readonly><?= h($skipFto ?? '') ?></textarea>
+    </div>
+
+    <div class="mb-3">
         <label for="MotivBeskr" class="form-label">Motivbeskrivelse</label>
         <input type="text" class="form-control" id="MotivBeskr" name="MotivBeskr"
                value="<?= h($foto['MotivBeskr'] ?? '') ?>">
@@ -40,6 +45,11 @@ declare(strict_types=1);
     </div>
 
     <div class="mb-3">
+        <label for="MotivType" class="form-label">Motiv type</label>
+        <textarea class="form-control" id="MotivType" name="MotivType" rows="2"><?= h($foto['MotivType'] ?? '') ?></textarea>
+    </div>
+
+    <div class="mb-3">
         <label for="MotivKriteria" class="form-label">Motiv søk</label>
         <textarea class="form-control" id="MotivKriteria" name="MotivKriteria" rows="3"><?= h($foto['MotivKriteria'] ?? '') ?></textarea>
     </div>
@@ -47,11 +57,6 @@ declare(strict_types=1);
     <div class="mb-3">
         <label for="Avbildet" class="form-label">Avbildet</label>
         <textarea class="form-control" id="Avbildet" name="Avbildet" rows="3"><?= h($foto['Avbildet'] ?? '') ?></textarea>
-    </div>
-
-    <div class="mb-3">
-        <label for="MotivType" class="form-label">Motiv type</label>
-        <textarea class="form-control" id="MotivType" name="MotivType" rows="2"><?= h($foto['MotivType'] ?? '') ?></textarea>
     </div>
 </fieldset>
 

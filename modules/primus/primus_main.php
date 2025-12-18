@@ -38,6 +38,24 @@ if ($serieFraPost !== '') {
 if ($valgtSerie === null || $valgtSerie === '') {
     $valgtSerie = primus_hent_forste_serie();
 }
+// --------------------------------------------------
+// NYTT FOTO (Access: cmdNytt_Click)
+// --------------------------------------------------
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    && ($_POST['action'] ?? '') === 'nytt_foto'
+) {
+    require_once __DIR__ . '/../foto/foto_modell.php';
+    $db = db();
+
+    $data = [
+        'Serie' => $valgtSerie,
+    ];
+
+    $nyFotoId = foto_opprett_ny($db, $data);
+
+    redirect('primus_detalj.php?Foto_ID=' . $nyFotoId);
+}
 
 // --------------------------------------------------
 // Data til visning
@@ -84,10 +102,20 @@ ui_card_start('Serie');
 ui_card_end();
 
 // --------------------------------------------------
-// Fototabell
+// Handlinger + Fototabell
 // --------------------------------------------------
 
 ui_card_start('Foto i valgt serie');
+
+// Handlinger (Access: cmdNytt)
+?>
+<form method="post" class="mb-3">
+    <input type="hidden" name="action" value="nytt_foto">
+    <button type="submit" class="btn btn-success">
+        Nytt foto i valgt serie
+    </button>
+</form>
+<?php
 
 if (empty($fotoListe)) {
 
@@ -118,6 +146,20 @@ if (empty($fotoListe)) {
 ui_card_end();
 ?>
 
+<?php
+ui_card_start('Handlinger');
+?>
+
+<form method="post">
+    <input type="hidden" name="action" value="nytt_foto">
+    <button type="submit" class="btn btn-success">
+        Nytt foto i valgt serie
+    </button>
+</form>
+
+<?php
+ui_card_end();
+?>
 <script>
 // Forberedt for detaljside (Trinn 5)
 document.querySelectorAll('.row-clickable').forEach(function (row) {

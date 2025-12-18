@@ -5,21 +5,22 @@ Denne filen gir Codex veiledning for arbeid i dette repoet, **nmmprimus**.
 
 ## Rammer og referanser
 
-- Prosjektets styrende filer: 
+- **Prosjektets styrende filer**: 
+  - `Primus _RD.md` — Prosjektets kravdokument. Ligger i prosjektets `Project Documents`
   - `Primus _Migreringsplan.md` — Prosjektets gjennomføringsplan. Når laget, ligger i prosjektets `Project Documents`
   - `Primus _Views.md` — Prosjektets Views. Når laget, ligger i prosjektets `Project Documents` (kan være mangelfull)
+  - `Primus _PI.md` — Prosjektets prosjektinstruks. Ligger i prosjektets `Project Documents`
   - `Primus _Schema.md` — Prosjektets databasens Schema. Ligger i prosjektets `Project Documents`
   - `Primus _Filstruktur.md` — Prosjektets fil-struktur. Når laget, ligger i prosjektets `Project Documents`
   
-  Disse skal **alltid** leses **før** utvikling/endring av ny kode.
+  **Prosjektets styrende filer** skal **alltid** leses **før** utvikling/endring av ny kode.
 
 - Prosjektet har i tillegg to filer til informasjon:
-  - `AccessObjects.pdf` — Alle data om komponentene i Access-databasen som skal konverteres. Ligger i prosjektets `Project Documents`
-  - `Primus _Forms_Map.md` — Mapping av forms til html. Når laget, ligger i prosjektets `Project Documents`
+  - `Primus_Funsjonalitet.md` — Alle data om objektene i Access-databasen som skal konverteres. Ligger i prosjektets `Project Documents`
+  - `AccessObjects.pdf` — Alle data om objektene i Access-databasen som skal konverteres. Ligger i prosjektets `Project Documents`
+  - `frmNMMFoto.pdf` — Definisjoner av felt og VBA benyttet i Access-formen "frmNMMFoto". Ligger i prosjektets `Project Documents`
 
-  Disse er **kun** til informasjon/inspirasjon. De gir en indikasjon på hvordan Access-databasen som konverteres fungerte og hva den inneholdt.
-
-- I tillegg finnes en fil-dump av Access-databasens tables, queries, forms, reports og modules som det kan gis adgang til ved behov.
+  Disse er **kun** til informasjon/inspirasjon. De gir en indikasjon på hvordan Access-databasen som konverteres fungerte og hva den inneholdt. Nettstedet kan avvike fra den detaljerte måten Access gjør tingene på, så lenge resultateet blir det samme.
 
 - Bruk alltid **nyeste versjon** dersom flere versjoner finnes (`v*` = høyest nummer).
 
@@ -38,7 +39,6 @@ Denne filen gir Codex veiledning for arbeid i dette repoet, **nmmprimus**.
 - Bruk `app.css` fremfor inline `<style>`.
 
 ## Generelle prinsipper
-
 - **Utseende/konverteringsbakgrunn**
   - En konverteringsoppgave skal ikke startes før relevante deler av  `AccessObjects.pdf` er gjennomgått og forstått.
   - Hensikten med hver modul skal avklares FØR utviklingen av den starter.
@@ -60,16 +60,17 @@ Denne filen gir Codex veiledning for arbeid i dette repoet, **nmmprimus**.
 - All visning av `KompNr` i UI skal bruke `komp_visning()` for å fjerne leading "<root>." Dette gjelder `komponenttre.php`, `komponent-liste.php`, jobb-lister, maling-lister og alle dropdowns som viser komponentnumre.
 
 - **Levering av endringer**:
-- **Alle** endringer av kode **SKAL** være basert på faktisk lest kode, **ALDRI** på gjettinger eller antakelser.
+- **Alle** endringer av kode **SKAL** være basert på faktisk lest kode av **SISTE** versjon av filen, **ALDRI** på gjettinger eller antakelser. Du skal verifisere at du har riktig fil for endringsforslaget.
+- Måten **alle** endringsforslag leveres på **SKAL**, før de fremsettes, være kontrollert mot `AGENTS.md`.
 - **Alle** endringer av kode **SKAL** enten ha:
   - patch med klartekst **linjenummer** som referanse, 
   - patch med foregående og etterfølgende tre linjert, eller 
   - gi full oppdatert versjon av filen som har endringen i seg.
+- Endringsforslag som ikke har en av disse, vil **ikke** bli utført. 
 - Ved manglende muligheter for å lese faktiske kode i filer, skal det bes om nedlasting av relevante filer **før** forslag til patcher leveres.
 - Begreper som " .. som ser ut som noe tilsvarende .. ", "... typisk ligger i .." og liknende vil ikke bli akseptert ifm. patching.
 
 ## Testplan
-
 - Lokalt (XAMPP):  
   - Last siden(e) direkte og verifiser layout.  
   - Hard refresh med `CTRL+F5`.

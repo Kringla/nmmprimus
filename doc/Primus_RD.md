@@ -38,5 +38,6 @@ Frontend: HTML, CSS (enkelt), og litt JavaScript (validering, interaktivitet)
 Autentisering: users-tabell med feltene user_id, email, password, isactive, created_at, lastused
 Påloggingsfunksjonalitet(`login.php`).
 
-### TRINN VIDERE – TBD
+### TRINN VIDERE
+Mål: Gjennomføre prosjektet iht. prosjektets migreringsplan (i `Primus_Migrasjonsplan.md`), som styrt av prosjektets instrukser (i `Primus_PI.md`). Begge ligger i Prosjektdokumentasjonen.
 

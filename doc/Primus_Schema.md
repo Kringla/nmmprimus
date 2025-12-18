@@ -8,9 +8,10 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 CREATE TABLE IF NOT EXISTS `bildeserie` (
-  `SerID` int(11) DEFAULT NULL,
-  `Serie` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `SerID` int(11) NOT NULL AUTO_INCREMENT,
+  `Serie` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`SerID`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `country` (
   `NID` int(11) NOT NULL AUTO_INCREMENT,
@@ -31,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `farttype` (
 ) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `nmmfoto` (
-  `Foto_ID` int(11) DEFAULT NULL,
+  `Foto_ID` int(11) NOT NULL AUTO_INCREMENT,
   `NMM_ID` int(11) DEFAULT NULL,
   `URL_Bane` varchar(255) DEFAULT NULL,
   `SerNr` smallint(6) DEFAULT NULL,
@@ -61,56 +62,62 @@ CREATE TABLE IF NOT EXISTS `nmmfoto` (
   `FriKopi` bit(1) DEFAULT NULL,
   `UUID` varchar(255) DEFAULT NULL,
   `Transferred` bit(1) DEFAULT NULL,
-  `Merknad` VARCHAR(255) DEFAULT NULL;
-  `Flag` bit(1) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `Merknad` varchar(255) DEFAULT NULL,
+  `Flag` bit(1) DEFAULT NULL,
+  PRIMARY KEY (`Foto_ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=216 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `nmmxemne` (
-  `Ser_ID` int(11) DEFAULT NULL,
+  `Ser_ID` int(11) NOT NULL AUTO_INCREMENT,
   `NMM_ID` int(11) DEFAULT NULL,
   `Id_nr` varchar(255) DEFAULT NULL,
   `UUID` varchar(255) DEFAULT NULL,
-  `Motivord` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `Motivord` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`Ser_ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=35608 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `nmmxhendelse` (
-  `Ser_ID` int(11) DEFAULT NULL,
+  `Ser_ID` int(11) NOT NULL AUTO_INCREMENT,
   `Foto_ID` int(11) DEFAULT NULL,
   `Hendelsestype` varchar(255) DEFAULT NULL,
-  `ROWID` varchar(255) DEFAULT NULL
+  `ROWID` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`Ser_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `nmmxou` (
-  `Ser_ID` int(11) DEFAULT NULL,
+  `Ser_ID` int(11) NOT NULL AUTO_INCREMENT,
   `NMM_ID` int(11) DEFAULT NULL,
   `Id` varchar(255) DEFAULT NULL,
   `System` varchar(255) DEFAULT NULL,
   `Kode` varchar(255) DEFAULT NULL,
   `Klassifikasjon` varchar(255) DEFAULT NULL,
-  `UUID` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `UUID` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`Ser_ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=19564 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `nmmxtype` (
-  `Ser_ID` int(11) DEFAULT NULL,
+  `Ser_ID` int(11) NOT NULL AUTO_INCREMENT,
   `NMM_ID` int(11) DEFAULT NULL,
   `Id` varchar(255) DEFAULT NULL,
   `UUID` varchar(255) DEFAULT NULL,
-  `Motivtype` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `Motivtype` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`Ser_ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=19273 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `nmmxudk` (
-  `Ser_ID` int(11) DEFAULT NULL,
+  `Ser_ID` int(11) NOT NULL AUTO_INCREMENT,
   `NMM_ID` int(11) DEFAULT NULL,
   `Id` varchar(255) DEFAULT NULL,
   `System` varchar(255) DEFAULT NULL,
   `Kode` varchar(255) DEFAULT NULL,
   `Klassifikasjon` varchar(255) DEFAULT NULL,
   `UUID` varchar(255) DEFAULT NULL,
-  `NID` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `NID` int(11) DEFAULT NULL,
+  PRIMARY KEY (`Ser_ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=20778 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `nmm_skip` (
-  `NMM_ID` int(11) DEFAULT NULL,
+  `NMM_ID` int(11) NOT NULL,
   `FTY` varchar(255) DEFAULT NULL,
   `FNA` varchar(255) DEFAULT NULL,
   `XNA` varchar(255) DEFAULT NULL,
@@ -131,7 +138,8 @@ CREATE TABLE IF NOT EXISTS `nmm_skip` (
   `USR` varchar(255) DEFAULT NULL,
   `DIV` int(11) DEFAULT NULL,
   `Flag` bit(1) DEFAULT NULL,
-  `Flag2` bit(1) DEFAULT NULL
+  `Flag2` bit(1) DEFAULT NULL,
+  PRIMARY KEY (`NMM_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `user` (
@@ -141,8 +149,32 @@ CREATE TABLE IF NOT EXISTS `user` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `IsActive` tinyint(1) NOT NULL DEFAULT 1,
   `LastUsed` timestamp NULL DEFAULT NULL,
+  `role` enum('admin','user') NOT NULL DEFAULT 'user',
   PRIMARY KEY (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `user_preferences` (
+  `user_id` int(11) NOT NULL,
+  `last_serie` varchar(50) DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`user_id`),
+  CONSTRAINT `fk_user_preferences_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `user_remember_tokens` (
+  `token_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `selector` char(24) NOT NULL,
+  `validator_hash` char(64) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` datetime NOT NULL,
+  `last_used_at` datetime NOT NULL,
+  PRIMARY KEY (`token_id`),
+  UNIQUE KEY `uq_selector` (`selector`),
+  KEY `ix_user_id` (`user_id`),
+  KEY `ix_expires` (`expires_at`),
+  CONSTRAINT `fk_user_remember_tokens_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `_zhendelsestyper` (
   `Kode` int(11) NOT NULL,

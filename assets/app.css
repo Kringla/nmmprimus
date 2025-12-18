@@ -234,3 +234,18 @@ textarea {
 .col-md-8 {
     flex: 1;
 }
+
+tr.valgt-kandidat {
+    background-color: #e6f0ff;
+}
+
+#kandidat-tbody,
+#kandidat-tbody tr,
+#kandidat-tbody td {
+    pointer-events: auto;
+}
+
+.card-body {
+    pointer-events: auto;
+}
+
