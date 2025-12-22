@@ -95,7 +95,7 @@ if (!function_exists('primus_hent_foto_for_serie')) {
             FROM nmmfoto
             WHERE LEFT(Bilde_Fil, 8) = :serie
             ORDER BY Bilde_Fil DESC
-            LIMIT 25
+            LIMIT 20
         ");
         $stmt->execute(['serie' => $serie]);
         return $stmt->fetchAll();
@@ -231,43 +231,54 @@ if (!function_exists('primus_hent_kandidat_felter')) {
 
         if (!$s) {
             return [
-                'ok' => true,
+                'ok'            => false,
 
                 // eksisterende felt
-                'ValgtFartoy'   => $valgtFartoy,
-                'FTO'           => (string)$s['FTO'],
-                'Avbildet'      => $avbildet,
+                'ValgtFartoy'   => '',
+                'FTO'           => '',
+                'Avbildet'      => '',
                 'MotivType'     => $motivType,
                 'MotivEmne'     => $motivEmne,
                 'MotivKriteria' => $motivKriteria,
 
                 // 🔴 PRIMITIVE FELT – nødvendig for Access-lik MotivBeskr
-                'FTY' => (string)$s['FTY'],
-                'FNA' => (string)$s['FNA'],
-                'BYG' => (string)$s['BYG'],
-                'VER' => (string)($s['VER'] ?? ''),
-                'XNA' => (int)($s['XNA'] ?? 0),
+                'FTY'           => '',
+                'FNA'           => '',
+                'BYG'           => '',
+                'VER'           => '',
+                'XNA'           => 0,
             ];
         }
 
-        $valgtFartoy = trim($s['FTY'] . ' ' . $s['FNA']);
-        $avbildet = $valgtFartoy . ', ' . $s['BYG'];
-        if ($s['KAL'] !== '') {
+        $fty = (string)($s['FTY'] ?? '');
+        $fna = (string)($s['FNA'] ?? '');
+        $byg = (string)($s['BYG'] ?? '');
+        $ver = (string)($s['VER'] ?? '');
+        $xna = (int)($s['XNA'] ?? 0);
+
+        $valgtFartoy = trim($fty . ' ' . $fna);
+        $avbildet = $valgtFartoy . ', ' . $byg;
+        if (($s['KAL'] ?? '') !== '') {
             $avbildet .= ' (' . $s['KAL'] . ')';
         }
-        if ($s['UUID'] !== '') {
+        if (($s['UUID'] ?? '') !== '') {
             $avbildet .= ' ' . $s['UUID'];
         }
 
         return [
-            'ok' => true,
-            'ValgtFartoy' => $valgtFartoy,
-            'FTO' => (string)$s['FTO'],
-            'Avbildet' => $avbildet,
-            'MotivType' => $motivType,
-            'MotivEmne' => $motivEmne,
+            'ok'            => true,
+            'ValgtFartoy'   => $valgtFartoy,
+            'FTO'           => (string)($s['FTO'] ?? ''),
+            'Avbildet'      => $avbildet,
+            'MotivType'     => $motivType,
+            'MotivEmne'     => $motivEmne,
             'MotivKriteria' => $motivKriteria,
-            'MotivBeskr' => $valgtFartoy
+            'MotivBeskr'    => $valgtFartoy,
+            'FTY'           => $fty,
+            'FNA'           => $fna,
+            'BYG'           => $byg,
+            'VER'           => $ver,
+            'XNA'           => $xna,
         ];
     }
 }

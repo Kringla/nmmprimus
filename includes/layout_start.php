@@ -33,24 +33,27 @@ if (!isset($pageTitle)) {
 <body>
 
 <header class="site-header">
-    <div class="site-header-inner">
-
-        <!-- Logo / Title -->
-        <div class="site-title">
-            <a href="<?= BASE_URL; ?>/index.php">NMMPrimus</a>
+    <div class="site-header-top">
+        <div class="container site-header-row">
+            <div class="site-brand">
+                <a class="site-brand-title" href="<?= BASE_URL; ?>/index.php">NMMPrimus</a>
+            </div>
+            <nav class="site-nav">
+                <?php if ($cu): ?>
+                    <span class="nav-user">
+                        <?= h((string)$cu['email']); ?> (<?= h((string)$cu['role']); ?>)
+                    </span>
+                    <a class="btn btn-link nav-cta" href="<?= BASE_URL; ?>/logout.php">Logg ut</a>
+                <?php else: ?>
+                    <a class="btn btn-link nav-cta" href="<?= BASE_URL; ?>/login.php">Logg inn</a>
+                <?php endif; ?>
+            </nav>
         </div>
-
-        <!-- Top navigation -->
-        <nav class="site-nav">
-            <?php if ($cu): ?>
-                <span class="nav-user">
-                    <?= h((string)$cu['email']); ?> (<?= h((string)$cu['role']); ?>)
-                </span>
-                <a class="btn btn-link" href="<?= BASE_URL; ?>/logout.php">Logg ut</a>
-            <?php else: ?>
-                <a class="btn btn-link" href="<?= BASE_URL; ?>/login.php">Logg inn</a>
-            <?php endif; ?>
-        </nav>
+    </div>
+    <div class="site-header-bottom">
+        <div class="container site-header-bottom-inner">
+            <div class="site-lockup"><?= h($pageTitle); ?></div>
+        </div>
     </div>
 </header>
 

@@ -4,7 +4,7 @@ AGENTS.md gjelder og har forrang.
 Primus_PI.md er aktiv.
 
 Aktivt trinn/kapittel:
-- [angi trinn, f.eks. Migreringsplan Trinn 6 / Primus_PI §3]
+- Primus_Migreringsplan.md Trinn 4
 
 Autoritative kilder:
 - Project Documents for nmmprimus
@@ -16,4 +16,4 @@ Si ifra før arbeid starter dersom noe mangler.
 Leveranseform:
 - Kun patcher iht. AGENTS.md
 - Ingen linjenummer
-- 3 linjer før/etter eller komplett fil
+- 3 linjer før og etter, eller komplett fil

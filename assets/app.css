@@ -8,6 +8,16 @@
     box-sizing: border-box;
 }
 
+:root {
+    --blue-deep: #0f4b87;
+    --blue-strong: #0a61af;
+    --blue-head: #acf3fc;
+    --blue-light: #f2f6fb;
+    --text-light: #f8fafc;
+    --link-yellow: #ffd400;
+    --page-bg: #f1f5fb;
+}
+
 html, body {
     margin: 0;
     padding: 0;
@@ -15,7 +25,7 @@ html, body {
     font-size: 16px;
     line-height: 1.4;
     color: #222;
-    background: #f5f6f8;
+    background: var(--page-bg);
 }
 
 /* Layout */
@@ -34,7 +44,7 @@ h1, h2, h3 {
 
 /* Cards */
 .card {
-    background: #fff;
+    background: #d2e9fd;
     border: 1px solid #d1d5db;
     border-radius: 4px;
     margin-bottom: 1.5rem;
@@ -49,6 +59,97 @@ h1, h2, h3 {
 
 .card-body {
     padding: 1rem;
+}
+
+/* Header */
+.site-header {
+    color: var(--text-light);
+    background: var(--blue-deep);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.site-header-top {
+    background: var(--blue-deep);
+}
+
+.site-header-bottom {
+    background: var(--blue-strong);
+}
+
+.site-header-row,
+.site-header-bottom-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.site-header-bottom-inner {
+    justify-content: center;
+}
+
+.site-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.site-brand-title {
+    color: var(--text-light);
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.2px;
+}
+
+.site-brand-sub {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+}
+
+.site-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.nav-user {
+    color: var(--text-light);
+    font-size: 0.95rem;
+}
+
+.btn-link.nav-cta {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-light);
+    padding: 0.25rem 0.5rem;
+    text-decoration: underline;
+}
+
+.site-lockup {
+    color: var(--text-light);
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    padding: 0.35rem 0;
+}
+
+/* Footer */
+.site-footer {
+    background: var(--blue-strong);
+    color: var(--text-light);
+    padding: 0.9rem 0;
+    margin-top: 2rem;
+}
+
+.site-footer-inner {
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.footer-link {
+    color: var(--link-yellow);
+    font-weight: 600;
 }
 
 /* Forms */
@@ -106,6 +207,12 @@ textarea {
 .btn-secondary {
     background: #e5e7eb;
     color: #111;
+}
+
+.btn-link {
+    background: transparent;
+    color: #2563eb;
+    border-color: transparent;
 }
 
 /* Utility */

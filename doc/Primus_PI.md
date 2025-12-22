@@ -1,103 +1,81 @@
-# NMMPRIMUS – Project Instructions for ChatGPT
+# NMMPRIMUS – Project Instructions (Primus_PI.md)
 
-Dette dokumentet definerer hvordan ChatGPT skal arbeide i prosjektet **nmmprimus**.
-Instruksjonene gjelder for alle samtaler i prosjektet og har forrang foran
-generelle eller implisitte antagelser.
-
----
-
-## 1. Prosjektavgrensning (KRITISK)
-
-- Prosjektet er **utelukkende** `nmmprimus`
-- **Ingen** kode, arkitektur, stil eller antagelser skal hentes fra:
-  - `vedl_db`
-  - andre tidligere prosjekter
-  - generiske “moderne” maler uten eksplisitt forankring i dokumentasjonen
-- Kun følgende kilder er autoritative:
-  - Project Documents for nmmprimus
-  - Filer eksplisitt vedlagt i chat
-  - Eksisterende kode i nmmprimus-repoet slik den er levert
-
-Hvis nødvendig informasjon mangler: **SI IFRA før arbeid starter.**
+Dette dokumentet definerer **hva** ChatGPT skal bygge og analysere i prosjektet **nmmprimus**.
+Dokumentet er funksjonelt og arkitektonisk styrende, men er **underordnet AGENTS.md** når det gjelder arbeidsform og leveranser.
 
 ---
 
-## 2. Arbeidsmodus
+## 1. Prosjektavgrensning
 
-- Bruk grundig, eksplisitt resonnering før kode eller forslag genereres
-- Foretrekk korrekthet, sporbarhet og paritet med Access/VBA
-- Ingen “gjetting” eller stilistisk modernisering uten krav
+* Prosjektet er **utelukkende** `nmmprimus`
+* Ingen kode, struktur eller antagelser fra andre prosjekter
+* Kun følgende kilder er autoritative:
+
+  * Project Documents for `nmmprimus`
+  * Filer eksplisitt vedlagt i chat
+  * Eksisterende kode i repoet
+
+Hvis informasjon mangler: **SI IFRA før arbeid starter.**
+
+---
+
+## 2. Prosjektets styrende dokumenter
+
+Disse dokumentene utgjør prosjektets sannhetsgrunnlag:
+
+* `Primus_PI.md` – dette dokumentet
+* `Primus_RD.md` – kravdokument
+* `Primus_Migreringsplan.md` – gjennomføringsplan
+* `Primus_Schema.md` – databaseskjema
+* `Primus_Filstruktur.md` – fil- og mappestruktur
+
+Disse skal leses **før** utvikling eller endring av kode.
 
 ---
 
 ## 3. Migreringsmål
 
-- Nettbasert PHP/MySQL-front-end
-- Funksjonell paritet med:
-  - `frmNMMPrimusMain`, beskrevet i `frmNMMPrimusMain.pdf` i Project Documents for nmmprimus
-  - `frmNMMPrimus`, inkl. subform `frmNMMPrimusKand subform`, beskrevet i henholdsvis `frmNMMPrimus.pdf` og `frmNMMPrimusKand_subform.pdf` i Project Documents for nmmprimus
-  - `frmNMMSkipsValg`, beskrevet i `frmNMMSkipsValg.pdf` i Project Documents for nmmprimus
+* Nettbasert PHP/MySQL-front-end
+* Funksjonell paritet med følgende Access-former:
 
-- VBA-logikk skal:
-  - identifiseres
-  - forklares
-  - oversettes til PHP / JS / SQL
+  * `frmNMMPrimusMain`
+  * `frmNMMPrimus`
+  * `frmNMMPrimusKand subform`
+  * `frmNMMSkipsValg`
 
----
-
-## 4. Kode- og filregler
-
-### PHP
-- `declare(strict_types=1);` skal alltid stå først
-- PHP 8.1+ syntaks
-- PDO benyttes konsekvent
-- Ingen skjulte sideeffekter
-
-### Filnavn
-- Norske, beskrivende filnavn
-- `snake_case`
-- Nye filer foretrekkes fremfor å “redde” gamle feilnavn
-
-### Includes
-- Kun dokumenterte includes
-- `layout_start.php` / `layout_slutt.php` brukes konsistent
+VBA-logikk skal identifiseres, forklares og oversettes til PHP / JS / SQL.
 
 ---
 
-## 5. Patch- og leveranseregler (AGENTS.md)
+## 4. Arbeidsmodus
 
-- Følg **AGENTS.md** strengt. Den ligger i Project Documents
-- Ingen linjenummer i patcher
-- Enten:
-  - presis erstatningsblokk med angivelse av kode som skal erstattes inkludert 3 linjer før og etter, eller
-  - komplett fil
-- Ikke bland forklaring og kode
+* Fokus på korrekthet og sporbarhet
+* Paritet med Access er viktigere enn forenkling
+* Avvik fra Access er tillatt **kun** når resultatet er funksjonelt identisk
 
 ---
 
-## 6. UI og interaksjon
+## 5. UI og interaksjon
 
-- Fokus på funksjon, ikke visuell modernitet
-- UI skal etterligne Access der relevant:
-  - default-verdier
-  - husk siste valg i session
-  - umiddelbar respons der Access gjør det
-- JS brukes kun når nødvendig
+* UI skal etterligne Access der relevant
+* Default-verdier og session-basert tilstand er viktige
+* Umiddelbar respons der Access gjør det samme
+* JS brukes kun når nødvendig
 
 ---
 
-## 7. Kommunikasjonsregler
+## 6. Forhold til AGENTS.md
 
-- Vær eksplisitt og etterprøvbar
-- Still spørsmål **kun** hvis nødvendig informasjon mangler
-- Hvis noe er uklart i dokumentasjonen: stopp og avklar
+* AGENTS.md definerer **hvordan** arbeidet utføres
+* Dette dokumentet definerer **hva** som bygges
+* Ved konflikt:
+
+  * **AGENTS.md har alltid forrang**
 
 ---
 
-## 8. Endringer i instruksjonen
+## 7. Endringer i Project Instructions
 
-Dette dokumentet er levende.
-Endringer skal:
-- gjøres eksplisitt
-- lagres i Project Documents
-- gjelde fra neste chat
+* Endringer skal gjøres eksplisitt
+* Lagres i Project Documents
+* Gjelder fra **neste chat**

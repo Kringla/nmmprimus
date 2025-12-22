@@ -33,7 +33,7 @@ require_once __DIR__ . '/includes/layout_start.php';
 </p>
 
 <p>
-    Du sendes automatisk videre om 5 sekunder. Hvis ikke, klikk
+    Du sendes automatisk videre om 3 sekunder. Hvis ikke, klikk
     <a href="<?= h($redirectTarget); ?>">her for å åpne primus_main.php</a>.
 </p>
 

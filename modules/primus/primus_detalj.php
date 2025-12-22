@@ -578,7 +578,7 @@ if (h2) {
         settFelt('MotivEmne', d.MotivEmne || '-');
         settFelt('MotivKriteria', d.MotivKriteria || '-');
 
-        // Access-paritet: bygg MotivBeskr fra kandidatfelter
+        // Access-paritet: bygg MotivBeskr fra kandidatfelter (fallback til FTO hvis kandidat_data ikke leverer feltene)
         var fty = (d.FTY || '').trim();
         var fna = (d.FNA || '').trim();
         var byg = (d.BYG || '').trim();
@@ -586,8 +586,10 @@ if (h2) {
         var xna = parseInt(d.XNA || '0', 10);
 
         // Access-paritet: sett IKKE MotivBeskr før fartøy er valgt
+        // Fallback: bruk FTO hvis tilgjengelig (siden FTO_vis settes korrekt fra API)
         if (fty === '' || fna === '') {
-            settFelt('MotivBeskr', '');
+            var fto = (d.FTO || '').trim();
+            settFelt('MotivBeskr', fto !== '' ? fto : '');
         } else {
             var mb = '';
             if (xna > 0) {

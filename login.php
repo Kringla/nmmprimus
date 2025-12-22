@@ -53,6 +53,7 @@ require_once __DIR__ . '/includes/layout_start.php';
                name="email"
                id="email"
                value="<?= h($_POST['email'] ?? ''); ?>"
+               autofocus
                required
                autocomplete="username"
         >
