@@ -34,8 +34,10 @@ Hvis nødvendig informasjon mangler: **SI IFRA før arbeid starter.**
 
 - Nettbasert PHP/MySQL-front-end
 - Funksjonell paritet med:
-  - `frmNMMfoto`
-  - `frmNMMPrimusKand` (inkl. subform)
+  - `frmNMMPrimusMain`, beskrevet i `frmNMMPrimusMain.pdf` i Project Documents for nmmprimus
+  - `frmNMMPrimus`, inkl. subform `frmNMMPrimusKand subform`, beskrevet i henholdsvis `frmNMMPrimus.pdf` og `frmNMMPrimusKand_subform.pdf` i Project Documents for nmmprimus
+  - `frmNMMSkipsValg`, beskrevet i `frmNMMSkipsValg.pdf` i Project Documents for nmmprimus
+
 - VBA-logikk skal:
   - identifiseres
   - forklares
@@ -64,10 +66,10 @@ Hvis nødvendig informasjon mangler: **SI IFRA før arbeid starter.**
 
 ## 5. Patch- og leveranseregler (AGENTS.md)
 
-- Følg **AGENTS.md** strengt
+- Følg **AGENTS.md** strengt. Den ligger i Project Documents
 - Ingen linjenummer i patcher
 - Enten:
-  - presis erstatningsblokk, eller
+  - presis erstatningsblokk med angivelse av kode som skal erstattes inkludert 3 linjer før og etter, eller
   - komplett fil
 - Ikke bland forklaring og kode
 

@@ -29,7 +29,6 @@ function foto_felt_tilstand(int $iCh): array
         'FotoTidFra' => false,
         'FotoTidTil' => false,
         'FotoSted'   => false,
-        'Prosess'    => false,
         'FriKopi'    => true,
         'Hendelse'   => false,
     ];
@@ -44,7 +43,6 @@ function foto_felt_tilstand(int $iCh): array
         $felter['FotoTidFra'] = true;
         $felter['FotoTidTil'] = true;
         $felter['FotoSted']   = true;
-        $felter['Prosess']    = true;
     }
 
     if ($iCh === 3) {

@@ -28,7 +28,7 @@ Verdien som finnes i feltet `Serie`s første 8 tegn brukes som et filter i noen 
 - Resultat tabellen fra søskal max vise 20 rader,  med muligheter for scrolling. Antall rader som tilfredsstiller søketeksten skal angis i eget felt over  tabellen..
 I `AccessObjects.pdf` er venstre panel i formen beskrevet under navnet `frmNMMPrimusKand subform`
 2. Høyre panel inneholder alle feltene i tbF; med unntak av `Flag` og `Transferred`. Feltene  `Foto_ID` og `NMM_ID` ikke synlige.
--  I `AccessObjects.pdf it` er resten av formen beskrevet under navnet `frmNMMPrimus` (som også viser `frmNMMPrimusKand subform`)..
+-  I `AccessObjects.pdf it` er resten av formen beskrevet under navnet `frmNMMPrimus` (som også viser `frmNMMPrimusKand subform`).
 ### Mulige hendelser, konsekvenser av valg i landingssiden
 1. Ved hendelse H1 i landingssiden :
 - Venstre panel vises ikke. 
@@ -36,7 +36,9 @@ I `AccessObjects.pdf` er venstre panel i formen beskrevet under navnet `frmNMMPr
 - Det er kun disse verdiene av feltene fra raden i `nmmfoto` som er editerbare.
 2. Ved hendelse H2 i landingssiden:
 -  Venstre panel vises. Alle felt er tomme i høyre panel, bortsett fra `SerNr` og `Bilde_Fil`. `SerNr` er generert i landingssiden. `Bilde_Fil` er konkatinering av `Serie` på landingssiden, "-" og `SerNr`.
--  Ved å klikke på en av radene i tabellen i venstre panel, vil noen av feltene i høyre del,  som skal Inneholde verdiene av en rad i tbF, bli fylt.  Feltene `MotivBeskr` og `FTO` får sammen med fartøy navn og type; verdier fra den valgte raden i det venstre panelet. Flere får sitt innhold fra tabeller basert på verdien av `NMM_ID` som kommer fra den valgte raden i venstre panel. Disse er:
+-  Ved å klikke på en av radene i tabellen i venstre panel, vil noen av feltene i høyre del,  som skal Inneholde verdiene av en rad i tbF, bli fylt.  Feltene `MotivBeskr` og `FTO` får sammen med fartøy navn og type; verdier fra den valgte raden i det venstre panelet. 
+- Logikken er beskrevet i `frmNMMPrimusKand_subform.pdf`
+- Flere felt får sitt innhold fra tabeller basert på verdien av `NMM_ID` som kommer fra den valgte raden i venstre panel. Disse er:
 	-	`nmmxemne`
 	-	`nmmxtype`
 	-	`nmmxou`
@@ -45,12 +47,44 @@ I `AccessObjects.pdf` er venstre panel i formen beskrevet under navnet `frmNMMPr
 	-	`nmmtema`
 	-	`nmm_skip`
 -   Det er kun verdien av feltene som lagres i `nmmfoto` som er editerbare. 
--	Det skal være en radiobølger som styrer aksesjon- og fotografi detaljer.  Logikken er beskrevet i VBA  delen av `frmNMMPrimus.pdf`. Virkningen av valg skal være synliggjort, f.eks. med røde og grønne rammer.
+-	Det skal være en radiobølger som styrer aksesjon- og fotografi detaljer.  Logikken er beskrevet i VBA  delen av `frmNMMPrimus.pdf` , samt `frmNMMSkipsValg.pdf`. Virkningen av valg skal være synliggjort, f.eks. med røde og grønne rammer.
 -	Sidens layout kan avvike fra `frmNMMPrimus`, og kan benytte 'tabs'.
 3. På/fra denne detaljsiden skal det i hovedsak være mulig å:
     -   Rette eksisterende verdier.
-	-	Det skal være mulig å endre feltet `SerNr` til et hvilket som helst tall mellom 1 og 999 som er ledig i serien. Feltet `Bilde!_Fil` skal oppdateres automatisk.
+	-	Det skal være mulig å endre feltet `SerNr` til et hvilket som helst tall mellom 1 og 999 som er ledig i serien. Feltet `Bilde_Fil` skal oppdateres automatisk.
     -   Lage helt ny forekomst/rad i `nmmfoto` i samme `Bilde_Fil`-serie (de første 8 karakterene) med `SerNr`-verdi som neste ledige i serien.
     -   Kopiere raden til ny rad `nmmfoto` med samme feltverdier, kun med endret `SerNr` som neste tall mellom 1 og 999 som er ledig i serien. Feltet `Bilde!_Fil` skal oppdateres automatisk.
-    
-   
+ 4. Følgende felt har påvirkning på andre felt når endret, som beskrevet:
+	-  `SerNr` og `NMMSerie` oppdaterer automatisk `Bilde_Fil` til å være lik konkatinering av `SerNr`, `-` og `NMMSerie`.
+	-  `FotoTidFra` oppdaterer automatisk `FotoTidTil` til å være lik `FotoTidFra`.
+
+## Foto – detaljvisning (primus_detalj.php)
+Detaljvisning for foto er nå funksjonelt ferdigstilt med følgende egenskaper:
+
+### Generelt
+-	Redigering skjer per foto (Foto_ID)
+-	Endringer lagres eksplisitt via Oppdater
+-	Ingen auto-lagring
+-	Faneinndeling
+
+### Følgende faner benyttes:
+- Motiv – semantisk og faglig beskrivelse av motiv
+- Bildehistorikk – hendelses- og produksjonsrelatert informasjon
+- Øvrige – arkiv, referanser og status
+Faneinndelingen er fast og tilsvarer Access-skjemaets gruppering.
+
+#### Hendelsesmodus (iCh)
+Hendelsesmodus velges eksplisitt av bruker og styrer:
+- tilgjengelighet (enabled/disabled) av felt
+- visuell markering av feltstatus
+- hvilke metadata som er relevante i aktuell kontekst
+Valg av 'iCh' skjer umiddelbart og gir direkte visuell tilbakemelding.
+
+### Session-atferd
+Systemet husker i gjeldende session:
+- sist valgt Hendelsesmodus
+- sist aktive fane
+Dette gir kontinuitet i redigeringsarbeidet og samsvarer med Access-atferd.
+
+### Status
+- Funksjonaliteten anses som ferdig og stabil, og danner grunnlag for videre arbeid med Primus-relaterte moduler.

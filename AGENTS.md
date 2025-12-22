@@ -1,87 +1,109 @@
 # AGENTS.md
 
-Prosjektets navn er **nmmprimus**
-Denne filen gir Codex veiledning for arbeid i dette repoet, **nmmprimus**.
+Prosjektets navn er **nmmprimus**.
+Denne filen er den **operative kontrakten** for hvordan ChatGPT skal arbeide i repoet `nmmprimus`.
+Instruksjonene gjelder for **alle samtaler** i prosjektet og har **absolutt forrang** foran alle andre dokumenter, inkludert Project Instructions.
 
-## Rammer og referanser
+---
 
-- **Prosjektets styrende filer**: 
-  - `Primus _RD.md` — Prosjektets kravdokument. Ligger i prosjektets `Project Documents`
-  - `Primus _Migreringsplan.md` — Prosjektets gjennomføringsplan. Når laget, ligger i prosjektets `Project Documents`
-  - `Primus _Views.md` — Prosjektets Views. Når laget, ligger i prosjektets `Project Documents` (kan være mangelfull)
-  - `Primus _PI.md` — Prosjektets prosjektinstruks. Ligger i prosjektets `Project Documents`
-  - `Primus _Schema.md` — Prosjektets databasens Schema. Ligger i prosjektets `Project Documents`
-  - `Primus _Filstruktur.md` — Prosjektets fil-struktur. Når laget, ligger i prosjektets `Project Documents`
-  
-  **Prosjektets styrende filer** skal **alltid** leses **før** utvikling/endring av ny kode.
+## 1. Prosjektavgrensning (KRITISK)
 
-- Prosjektet har i tillegg to filer til informasjon:
-  - `Primus_Funsjonalitet.md` — Alle data om objektene i Access-databasen som skal konverteres. Ligger i prosjektets `Project Documents`
-  - `AccessObjects.pdf` — Alle data om objektene i Access-databasen som skal konverteres. Ligger i prosjektets `Project Documents`
-  - `frmNMMFoto.pdf` — Definisjoner av felt og VBA benyttet i Access-formen "frmNMMFoto". Ligger i prosjektets `Project Documents`
+* Prosjektet er **utelukkende** `nmmprimus`
+* **Ingen** kode, arkitektur, stil, mønstre eller antagelser skal hentes fra:
 
-  Disse er **kun** til informasjon/inspirasjon. De gir en indikasjon på hvordan Access-databasen som konverteres fungerte og hva den inneholdt. Nettstedet kan avvike fra den detaljerte måten Access gjør tingene på, så lenge resultateet blir det samme.
+  * andre repoer (inkl. `vedl_db`)
+  * generiske “moderne” maler
+* Kun følgende kilder er autoritative:
 
-- Bruk alltid **nyeste versjon** dersom flere versjoner finnes (`v*` = høyest nummer).
+  * Project Documents for `nmmprimus`
+  * Filer eksplisitt vedlagt i chat
+  * Eksisterende kode i `nmmprimus`-repoet slik den faktisk foreligger
 
-- Vedlagte filer har **alltid prioritet** over filer i prosjektets `Project Documents`.
+Hvis nødvendig informasjon mangler: **SI IFRA før arbeid starter.**
 
-- Filnavn skal være **unike** innen repoet, navngitt med **norsk språk**. Filmapper kan ha engelsk-språklige navn.
+---
 
-- Vedlagte filer skal alltid leses/benyttes selv om de ikke referes til som 'vedlagt' i prompten.
-- Filene i `config/` skal **ikke** endres.
-- Tabellen `nmmfoto` er den aktive tabellen som endres av brukeren hele tiden. Alle øvrige tabeller såkalte **parametertabeller**, som i enkelte tilfeller kan gis tillegg.
-- Prosjektets css-fil er, når laget, i `assets/app.css`.
+## 2. Forhold til Project Instructions (Primus_PI.md)
 
-## Tillatte endringer
-- Det er lov å endre filer, men unngå utilsiktet å endre/bryte eksisterende funksjonalitet.
-- Eksisterende CSS-klasser i `assets/` kan endres. Nye klasser kan legges til i `assets/app.css`.
-- Bruk `app.css` fremfor inline `<style>`.
+* `Primus_PI.md` definerer **hva** systemet er og skal gjøre
+* **Denne filen (AGENTS.md)** definerer **hvordan** arbeid og leveranser skal utføres
+* Ved konflikt mellom dokumentene:
 
-## Generelle prinsipper
-- **Utseende/konverteringsbakgrunn**
-  - En konverteringsoppgave skal ikke startes før relevante deler av  `AccessObjects.pdf` er gjennomgått og forstått.
-  - Hensikten med hver modul skal avklares FØR utviklingen av den starter.
-  
-- **Kodekvalitet**:  
-  - Fjern unødvendig kode og duplisering av klasser.  
-  - Bruk `h()` for output escaping.  
-  - Bruk `basename()` på filnavn hvis dynamiske bildekilder.
-  - Når ferdig med kodingsoppgaven skal du:
-	-	Kontrollere at løsningen tilfredsstiller kravene i chatten og denne AGENTS.md. Hvis noen av elementene i denne AGENTS.md er til hinder for gode løsninger, kan de fravikes hvis de føles av en klar melding om hva avviket er, begrunnelse for å gjøre avviket og hvorfort avviket ikke endrer kvaliteten/konsistensen i repoet.
-	- Fjerne fra repoet "temp"-filer som kun var for bruk ifm. det aktuelle kodingsarbeidet.
+  * **AGENTS.md vinner alltid**
 
-- **CSS**:  
-  - Ikke bruk `!important` unntatt når helt nødvendig.  
-  - Scope endringer (f.eks. `.card.centered-card`).størrelser og nettbrett der det er mulig. Smartphone skjermer ikke aktuelt å ta hensyn til.
+---
 
-- **Spesielle forhold**:
-  - Databasefelt som heter `Flag` eller `Flagg` er ment for Back-End manipulering, og skal ikke være del av noe UI. De behøver ikke å tas med i SQL 'SELECT'-statements/views hvis de ikke tjener en spesiell hensikt.
-- All visning av `KompNr` i UI skal bruke `komp_visning()` for å fjerne leading "<root>." Dette gjelder `komponenttre.php`, `komponent-liste.php`, jobb-lister, maling-lister og alle dropdowns som viser komponentnumre.
+## 3. Arbeidsprinsipper
 
-- **Levering av endringer**:
-- **Alle** endringer av kode **SKAL** være basert på faktisk lest kode av **SISTE** versjon av filen, **ALDRI** på gjettinger eller antakelser. Du skal verifisere at du har riktig fil for endringsforslaget.
-- Måten **alle** endringsforslag leveres på **SKAL**, før de fremsettes, være kontrollert mot `AGENTS.md`.
-- **Alle** endringer av kode **SKAL** enten ha:
-  - patch med klartekst **linjenummer** som referanse, 
-  - patch med foregående og etterfølgende tre linjert, eller 
-  - gi full oppdatert versjon av filen som har endringen i seg.
-- Endringsforslag som ikke har en av disse, vil **ikke** bli utført. 
-- Ved manglende muligheter for å lese faktiske kode i filer, skal det bes om nedlasting av relevante filer **før** forslag til patcher leveres.
-- Begreper som " .. som ser ut som noe tilsvarende .. ", "... typisk ligger i .." og liknende vil ikke bli akseptert ifm. patching.
+* Ingen gjetting, antagelser eller implisitt utfylling
+* Foretrekk korrekthet, sporbarhet og paritet med Access/VBA
+* VBA-logikk skal:
 
-## Testplan
-- Lokalt (XAMPP):  
-  - Last siden(e) direkte og verifiser layout.  
-  - Hard refresh med `CTRL+F5`.
+  * identifiseres
+  * forklares
+  * oversettes til PHP / JS / SQL
 
-- Nettlesere: Chrome.
+---
 
-- Standard skjermstørrelse er 1920 x 1080, men design for andre PC 
+## 4. Kode- og filregler
 
+### PHP
 
-## Instruksjoner for samarbeid med ChatGPT
-- Last opp denne filen i starten av en økt. 
-- Be ChatGPT validere leveranser mot reglene i denne filen.
-- ChatGPT skal kun foreslå endringer som er i tråd med disse reglene.
+* `declare(strict_types=1);` skal alltid stå først
+* PHP 8.1+ syntaks
+* PDO benyttes konsekvent
+* Ingen skjulte sideeffekter
+* Bruk `h()` for output-escaping
 
+### Filnavn
+
+* Norske, beskrivende filnavn
+* `snake_case`
+* Filnavn skal være **unike** i repoet
+
+### Struktur
+
+* Kun dokumenterte includes
+* `layout_start.php` / `layout_slutt.php` brukes konsistent
+* Filene i `config/` skal **ikke** endres
+
+---
+
+## 5. Patch- og leveranseregler (KRITISK)
+
+* **Ingen linjenummer** i kodeblokker
+* Alle endringer **SKAL** leveres som enten:
+
+  * presis patch med **3 linjer før og etter**, eller
+  * komplett oppdatert fil
+* Ikke bland forklaring og kode
+* Alle patcher skal være basert på **faktisk lest kode av siste versjon**
+
+Hvis korrekt fil ikke er tilgjengelig: **be om nedlasting før patch foreslås**
+
+---
+
+## 6. UI og interaksjon
+
+* Fokus på funksjon, ikke visuell modernisering
+* UI skal etterligne Access der relevant:
+
+  * default-verdier
+  * husk siste valg i session
+  * umiddelbar respons der Access gjør det
+* JS brukes kun når nødvendig
+
+---
+
+## 7. Kommunikasjon
+
+* Vær eksplisitt og etterprøvbar
+* Still spørsmål **kun** hvis nødvendig informasjon mangler
+* Hvis dokumentasjon er uklar: **stopp og avklar**
+
+---
+
+## 8. Endringer i AGENTS.md
+
+* Endringer skal gjøres eksplisitt
+* Gjelder først fra **neste chat**

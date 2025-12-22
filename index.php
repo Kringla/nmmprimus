@@ -42,7 +42,7 @@ require_once __DIR__ . '/includes/layout_start.php';
         const redirectTarget = <?= json_encode($redirectTarget, JSON_UNESCAPED_SLASHES); ?>;
         setTimeout(function () {
             window.location.href = redirectTarget;
-        }, 5000);
+        }, 3000);
     })();
 </script>
 

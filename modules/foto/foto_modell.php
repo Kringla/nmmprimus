@@ -28,6 +28,69 @@ function foto_hent_en(PDO $db, int $fotoId): ?array
 function foto_lagre(PDO $db, array $data): int
 {
     // --------------------------------------------------
+    // Server-side POST-sanitering (iCh-paritet)
+    // --------------------------------------------------
+
+    $iCh = isset($_SESSION['primus_iCh']) ? (int)$_SESSION['primus_iCh'] : 1;
+
+    // Felter som ALLTID kan lagres
+    $always = [
+        'Foto_ID',
+        'NMM_ID',
+        'SerNr',
+        'Bilde_Fil',
+        'MotivBeskr',
+        'MotivBeskrTillegg',
+        'MotivType',
+        'MotivEmne',
+        'MotivKriteria',
+        'Avbildet',
+        'Hendelse',
+        'ReferNeg',
+        'ReferFArk',
+        'Plassering',
+        'Prosess',
+        'Status',
+        'Tilstand',
+        'Merknad',
+        'Svarthvitt',
+        'FriKopi'
+    ];
+
+    // Felter styrt av iCh
+    $fotoFelter = [
+        'Fotograf',
+        'FotoFirma',
+        'FotoTidFra',
+        'FotoTidTil',
+        'FotoSted'
+    ];
+
+    $samlingFelter = [
+        'Samling'
+    ];
+
+    // Start med alltid-feltene
+    $tillatt = $always;
+
+    // Fotografi-relaterte felt
+    if (in_array($iCh, [2,4,6], true)) {
+        $tillatt = array_merge($tillatt, $fotoFelter);
+    }
+
+    // Samling-relaterte felt
+    if (in_array($iCh, [3,4,6], true)) {
+        $tillatt = array_merge($tillatt, $samlingFelter);
+    }
+
+    // Fjern alle POST-felter som ikke er tillatt i aktuell iCh
+    foreach (array_keys($data) as $key) {
+        if (!in_array($key, $tillatt, true)) {
+            unset($data[$key]);
+        }
+    }
+
+    // --------------------------------------------------
     // FELTLISTE (whitelist)
     // --------------------------------------------------
     $felter = [
@@ -57,15 +120,14 @@ function foto_lagre(PDO $db, array $data): int
         'FotoTidFra',
         'FotoTidTil',
         'FotoSted',
-
         'Aksesjon',
         'Samling',
-        'Prosess',
 
         // Referanser / status
         'ReferNeg',
         'ReferFArk',
         'Plassering',
+        'Prosess',
         'Status',
         'Tilstand',
         'Svarthvitt',

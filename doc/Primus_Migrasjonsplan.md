@@ -289,8 +289,6 @@ AccessObjects
 
 Leveranser:
 
-modules/foto/foto_liste.php (søk på relevante metadata)
-
 modules/foto/foto_detalj.php (inkl. visning av filbane/URL-felt)
 
 Evt. modules/foto/foto_rediger.php (hvis Access tillater edits)

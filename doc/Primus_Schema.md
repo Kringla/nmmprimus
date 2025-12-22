@@ -14,12 +14,10 @@ CREATE TABLE IF NOT EXISTS `bildeserie` (
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `country` (
-  `NID` int(11) NOT NULL AUTO_INCREMENT,
-  `Nasjon` varchar(255) DEFAULT NULL,
-  `Maritim` bit(1) DEFAULT NULL,
-  `PriTy` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`NID`)
-) ENGINE=InnoDB AUTO_INCREMENT=208 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `Nasjon_ID` int(11) NOT NULL AUTO_INCREMENT,
+  `Nasjon` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`Nasjon_ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `farttype` (
   `FTY` int(11) NOT NULL AUTO_INCREMENT,
@@ -52,20 +50,20 @@ CREATE TABLE IF NOT EXISTS `nmmfoto` (
   `FotoTidFra` varchar(255) DEFAULT NULL,
   `FotoTidTil` varchar(255) DEFAULT NULL,
   `FotoSted` varchar(255) DEFAULT NULL,
-  `Prosess` varchar(255) DEFAULT NULL,
+  `Prosess` varchar(255) DEFAULT 'Positivkopi;300',
   `ReferNeg` varchar(255) DEFAULT NULL,
   `ReferFArk` varchar(255) DEFAULT NULL,
-  `Plassering` varchar(255) DEFAULT NULL,
-  `Svarthvitt` varchar(255) DEFAULT NULL,
-  `Status` varchar(255) DEFAULT NULL,
-  `Tilstand` varchar(255) DEFAULT NULL,
+  `Plassering` varchar(255) DEFAULT '0286:NMM Oslo/Mus:NMM, Bygdøynesveien 37/Bib:Biblioteket - Fotoarkiv Damp- og Motorskip',
+  `Svarthvitt` varchar(255) DEFAULT 'Svart-hvit',
+  `Status` varchar(255) DEFAULT 'Original',
+  `Tilstand` varchar(255) DEFAULT 'God',
   `FriKopi` bit(1) DEFAULT NULL,
   `UUID` varchar(255) DEFAULT NULL,
   `Transferred` bit(1) DEFAULT NULL,
   `Merknad` varchar(255) DEFAULT NULL,
   `Flag` bit(1) DEFAULT NULL,
   PRIMARY KEY (`Foto_ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=216 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=239 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `nmmxemne` (
   `Ser_ID` int(11) NOT NULL AUTO_INCREMENT,

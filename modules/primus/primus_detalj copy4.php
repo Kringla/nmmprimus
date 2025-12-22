@@ -20,8 +20,6 @@ $foto = foto_hent_en($db, $fotoId);
 if (!$foto) {
     redirect('primus_main.php');
 }
-// --------------------------------------------------
-
 
 /* ---------- helpers ---------- */
 function txt(string $n, string $l, string $v = '', bool $readonly = false, string $width = '100%'): void
@@ -58,47 +56,11 @@ function chk(string $n, string $l, bool $v = false): void
           </label>";
 }
 
-function combo(string $n, string $l, array $opts, string $v = '', string $width = '100%'): void
-{
-    echo "<div class='form-group' style='width:$width;'>
-            <label for='$n'>$l</label>
-            <select name='$n' id='$n' style='width:100%;'>";
-    foreach ($opts as $opt) {
-        $o = (string)$opt;
-        $sel = $o === $v ? 'selected' : '';
-        echo "<option value='" . h($o) . "' $sel>" . h($o) . "</option>";
-    }
-    echo "    </select>
-          </div>";
-}
-
 // --------------------------------------------------
 // H2-modus: kandidatpanel klikkbart kun ved ny rad
 // --------------------------------------------------
 $h2 = (int)($_SESSION['primus_h2'] ?? 0) === 1;
-// --------------------------------------------------
-// Defaults i Øvrige (kun ved ny rad / H2)
-// Access-paritet iht Primus_Schema.md
-// --------------------------------------------------|
-if ($h2) {
-    if (empty($foto['Status'])) {
-        $foto['Status'] = 'Original';
-    }
-    if (empty($foto['Plassering'])) {
-        $foto['Plassering'] = '0286:NMM Oslo/Mus:NMM, Bygdøynesveien 37/Bib:Biblioteket - Fotoarkiv Damp- og Motorskip';
-    }
-    if (empty($foto['Prosess'])) {
-        $foto['Prosess'] = 'Positivkopi;300';
-    }
-    if (empty($foto['Tilstand'])) {
-        $foto['Tilstand'] = 'God';
-    }
-}
 
-$svarthvittValg = ['Svart-hvit', 'Farge', 'Håndkolorert'];
-if (!isset($foto['Svarthvitt']) || $foto['Svarthvitt'] === '' || $foto['Svarthvitt'] === null) {
-    $foto['Svarthvitt'] = $svarthvittValg[0];
-}
 // --------------------------------------------------
 // Hendelsesmodus (iCh) – session-paritet
 // --------------------------------------------------
@@ -203,13 +165,12 @@ if ($nmmSerie === '' && $serieFraBild !== '') {
     $nmmSerie = $serieFraBild;
 }
 if ($nmmSerie !== '' && str_starts_with($bild, $nmmSerie)) {
-    // plukk ut alle siffer etter serien (tåler både "NSM.2113-652" og "NSM.2113652")
+    // plukk ut alle siffer etter serien, i starten av resten
     $rest = substr($bild, 8);
-    if (preg_match('/^-?(\d+)/', $rest, $m)) {
+    if (preg_match('/^(\d+)/', $rest, $m)) {
         $sernr = (int)$m[1];
     }
 }
-
 
 // --------------------------------------------------
 // ValgtFartøy + FTO: alltid basert på valgt NMM_ID
@@ -241,16 +202,16 @@ if ($aktNmmId > 0) {
 
                 <!-- TOPP: ValgtFartøy + FTO -->
                 <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
-                    <?php txt('ValgtFartoy_vis', 'Valgt fartøy', $valgtFartoyVis, true, '420px'); ?>
-                    <?php txt('FTO_vis', 'Bilde kommentarer', $ftoVis, true, '220px'); ?>
+                    <?php txt('ValgtFartoy_vis', 'ValgtFartøy', $valgtFartoyVis, true, '420px'); ?>
+                    <?php txt('FTO_vis', 'FTO', $ftoVis, true, '220px'); ?>
                 </div>
 
                 <hr>
 
                 <!-- Serie / fil -->
                 <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
-                    <div class="form-group" style="max-width:15ch; width:100%;">
-                        <label for="NMMSerie">NSM serie</label>
+                    <div class="form-group" style="max-width:12ch; width:100%;">
+                        <label for="NMMSerie">NMMSerie</label>
                         <select name="NMMSerie" id="NMMSerie" style="max-width:15ch; width:100%;">
                             <?php
                             // Enkel serie-liste fra bildeserie-tabellen (scroll i select)
@@ -265,14 +226,8 @@ if ($aktNmmId > 0) {
                         </select>
                     </div>
 
-                    <?php
-                    $bildeFilVis = (string)($foto['Bilde_Fil'] ?? '');
-                    if ($nmmSerie !== '' && $sernr > 0) {
-                        $bildeFilVis = $nmmSerie . '-' . (string)$sernr;
-                    }
-                    ?>
-                    <?php num('SerNr', 'Serienr', (int)$sernr, false, '7ch'); ?>
-                    <?php txt('Bilde_Fil', 'Bildefil', $bildeFilVis, false, '520px'); ?>
+                    <?php num('SerNr', 'SerNr', (int)$sernr, false, '7ch'); ?>
+                    <?php txt('Bilde_Fil', 'Bilde_Fil', (string)($foto['Bilde_Fil'] ?? ''), false, '520px'); ?>
                 </div>
 
                 <hr>
@@ -286,22 +241,21 @@ if ($aktNmmId > 0) {
                                 <strong>Kandidater</strong>
                                 <?php if (!$h2): ?>
                                     <div style="font-size:12px; opacity:.7;">
-                                        (Kun aktiv ved “Nytt foto”)
+                                        (Kun aktiv ved “Nytt foto” / H2)
                                     </div>
                                 <?php endif; ?>
                             </div>
                             <div class="card-body">
 
                                 <?php if ($h2): ?>
-                                    <div style="margin-bottom:10px;">
-                                        <input type="hidden" id="k_sok_foto_id" value="<?= h((string)$fotoId) ?>">
+                                    <form method="get" style="margin-bottom:10px;">
+                                        <input type="hidden" name="Foto_ID" value="<?= h((string)$fotoId) ?>">
                                         <div class="form-group">
                                             <label for="k_sok">Søk (FNA)</label>
-                                            <input type="text" id="k_sok" value="<?= h($kandidatSok) ?>">
+                                            <input type="text" name="k_sok" id="k_sok" value="<?= h($kandidatSok) ?>">
                                         </div>
-                                        <button class="btn btn-secondary" type="button" id="btn-kandidat-sok">Søk</button>
-                                    </div>
-
+                                        <button class="btn btn-secondary" type="submit">Søk</button>
+                                    </form>
 
                                     <div style="max-height:520px; overflow:auto; border:1px solid #ddd; padding:6px;">
                                         <table class="table table-sm" style="margin:0;">
@@ -328,7 +282,7 @@ if ($aktNmmId > 0) {
                                     </div>
                                 <?php else: ?>
                                     <div style="opacity:.7;">
-                                        Kandidatvalg er deaktivert for eksisterende fartøy.
+                                        Kandidatvalg er deaktivert i H1.
                                     </div>
                                 <?php endif; ?>
 
@@ -357,8 +311,8 @@ if ($aktNmmId > 0) {
 
                             <div class="primus-pane <?= $aktivTab === 'motiv' ? 'is-active' : '' ?>" id="motiv">
                                 <?php
-                                area('MotivBeskr', 'Motivbeskrivelse', (string)($foto['MotivBeskr'] ?? ''), 4);
-                                area('MotivBeskrTillegg', 'Tillegg, Motivbeskrivelse', (string)($foto['MotivBeskrTillegg'] ?? ''), 3);
+                                area('MotivBeskr', 'MotivBeskr', (string)($foto['MotivBeskr'] ?? ''), 4);
+                                area('MotivBeskrTillegg', 'MotivBeskrTillegg', (string)($foto['MotivBeskrTillegg'] ?? ''), 3);
 
                                 area('Avbildet', 'Avbildet', (string)($foto['Avbildet'] ?? ''), 3);
                                 ?>
@@ -372,7 +326,7 @@ if ($aktNmmId > 0) {
                                 <hr>
 
                                 <?php
-                                area('MotivType', 'Motivtype', (string)($foto['MotivType'] ?? ''), 3);
+                                area('MotivType', 'MotivType', (string)($foto['MotivType'] ?? ''), 3);
                                 ?>
                                 <div class="mb-2">
                                     <button type="button" class="btn btn-secondary" id="btn-leggtil-skipsportrett">
@@ -381,8 +335,8 @@ if ($aktNmmId > 0) {
                                 </div>
 
                                 <?php
-                                area('MotivEmne', 'Motivemne', (string)($foto['MotivEmne'] ?? ''), 3);
-                                area('MotivKriteria', 'Søkekriteria', (string)($foto['MotivKriteria'] ?? ''), 3);
+                                area('MotivEmne', 'MotivEmne', (string)($foto['MotivEmne'] ?? ''), 3);
+                                area('MotivKriteria', 'MotivKriteria', (string)($foto['MotivKriteria'] ?? ''), 3);
                                 ?>
                             </div>
 
@@ -390,7 +344,7 @@ if ($aktNmmId > 0) {
                                 <strong>Hendelsesmodus</strong>
                                 <div class="hendelser-rad">
                                     <?php
-                                    $lbl = [1 => 'Ingen', 2 => 'Fotografi', 3 => 'Samling', 4 => 'Foto+Samling', 5 => 'Annet', 6 => 'Alle'];
+                                    $lbl = [1 => 'Ingen', 2 => 'Fotografi', 3 => 'Samling', 4 => 'Foto+Saml', 5 => 'Annet', 6 => 'Alle'];
                                     foreach ($lbl as $v => $t):
                                     ?>
                                         <label class="form-check">
@@ -403,19 +357,19 @@ if ($aktNmmId > 0) {
                                 <?php
                                 area('Hendelse', 'Hendelse', (string)($foto['Hendelse'] ?? ''), 2);
                                 txt('Samling', 'Samling', (string)($foto['Samling'] ?? ''));
-                                chk('FriKopi', 'Fri kopi', (bool)($foto['FriKopi'] ?? false));
+                                chk('FriKopi', 'FriKopi', (bool)($foto['FriKopi'] ?? false));
                                 txt('Fotograf', 'Fotograf', (string)($foto['Fotograf'] ?? ''));
-                                txt('FotoFirma', 'Fotofirma', (string)($foto['FotoFirma'] ?? ''));
-                                txt('FotoTidFra', 'Tid (Fra)', (string)($foto['FotoTidFra'] ?? ''));
-                                txt('FotoTidTil', 'Tid (Til)', (string)($foto['FotoTidTil'] ?? ''));
-                                txt('FotoSted', 'Sted tatt', (string)($foto['FotoSted'] ?? ''));
+                                txt('FotoFirma', 'FotoFirma', (string)($foto['FotoFirma'] ?? ''));
+                                txt('FotoTidFra', 'FotoTidFra', (string)($foto['FotoTidFra'] ?? ''));
+                                txt('FotoTidTil', 'FotoTidTil', (string)($foto['FotoTidTil'] ?? ''));
+                                txt('FotoSted', 'FotoSted', (string)($foto['FotoSted'] ?? ''));
                                 ?>
                             </div>
 
                             <div class="primus-pane <?= $aktivTab === 'ovrige' ? 'is-active' : '' ?>" id="ovrige">
                                 <?php
-                                txt('ReferNeg', 'Referanse, NMM', (string)($foto['ReferNeg'] ?? ''));
-                                txt('ReferFArk', 'Referanse, fotograf', (string)($foto['ReferFArk'] ?? ''));
+                                txt('ReferNeg', 'ReferNeg', (string)($foto['ReferNeg'] ?? ''));
+                                txt('ReferFArk', 'ReferFArk', (string)($foto['ReferFArk'] ?? ''));
                                 ?>
                                 <hr>
                                 <?php
@@ -424,7 +378,7 @@ if ($aktNmmId > 0) {
                                 ?>
                                 <hr>
                                 <?php
-                                combo('Svarthvitt', 'Svarthvitt', $svarthvittValg, (string)($foto['Svarthvitt'] ?? ''));
+                                chk('Svarthvitt', 'Svarthvitt', (bool)($foto['Svarthvitt'] ?? false));
                                 txt('Status', 'Status', (string)($foto['Status'] ?? ''));
                                 txt('Tilstand', 'Tilstand', (string)($foto['Tilstand'] ?? ''));
                                 ?>
@@ -468,21 +422,6 @@ document.querySelectorAll('.primus-tab').forEach(tab => {
     }).catch(()=>{});
   });
 });
-
-// ---------------- Kandidatsøk (GET uten nested form) ----------------
-var sokBtn = document.getElementById('btn-kandidat-sok');
-if (sokBtn) {
-    sokBtn.addEventListener('click', function () {
-        var sok = document.getElementById('k_sok');
-        if (!sok) return;
-
-        var url = 'primus_detalj.php?Foto_ID=<?= (int)$fotoId ?>';
-        if (sok.value.trim() !== '') {
-            url += '&k_sok=' + encodeURIComponent(sok.value.trim());
-        }
-        window.location.href = url;
-    });
-}
 
 // ---------------- iCh → foto_state ----------------
 function oppdaterFotoState(){
@@ -578,58 +517,32 @@ if (h2) {
         settFelt('MotivEmne', d.MotivEmne || '-');
         settFelt('MotivKriteria', d.MotivKriteria || '-');
 
-        // Access-paritet: bygg MotivBeskr fra kandidatfelter
-        var fty = (d.FTY || '').trim();
-        var fna = (d.FNA || '').trim();
-        var byg = (d.BYG || '').trim();
-        var ver = (d.VER || '').trim();
-        var xna = parseInt(d.XNA || '0', 10);
-
-        // Access-paritet: sett IKKE MotivBeskr før fartøy er valgt
-        if (fty === '' || fna === '') {
-            settFelt('MotivBeskr', '');
-        } else {
-            var mb = '';
-            if (xna > 0) {
-                mb = fty + ' ' + fna + ' (Ex. ' + xna + ')(' + byg + ', ' + ver + ')';
-            } else {
-                mb = fty + ' ' + fna + ' (' + byg + ', ' + ver + ')';
-            }
-            settFelt('MotivBeskr', mb);
+        // Access: FNAOppdater setter MotivBeskr
+        if (typeof d.MotivBeskr === 'string' && d.MotivBeskr !== '') {
+          settFelt('MotivBeskr', d.MotivBeskr);
         }
-
       })
       .catch(()=>{});
     });
   });
 }
+
+// ---------------- Legg til 'Skipsportrett' (placeholder) ----------------
+// Foreløpig: legger til en linje "Skipsportrett" øverst hvis ikke finnes.
+// (Dette kan senere knyttes til type-tabell hvis ønskelig.)
+document.getElementById('btn-leggtil-skipsportrett')?.addEventListener('click', function(){
+  const el = document.getElementById('MotivType');
+  if(!el) return;
+  const v = (el.value || '').trim();
+  const linjer = v ? v.split(/\r?\n/) : [];
+  const finnes = linjer.some(l => l.toLowerCase().includes('skipsportrett'));
+  if(!finnes){
+    linjer.unshift('Skipsportrett');
+    el.value = linjer.filter(Boolean).join('\n');
+  }
+});
+
 })();
 </script>
 
-<script type="text/javascript">
-/* ---------------------------------------------
-   OPPDATER Bilde_Fil klient-side (visuelt)
-   --------------------------------------------- */
-function oppdaterBildeFil() {
-    var serie = document.getElementById('NMMSerie');
-    var serNr = document.getElementById('SerNr');
-    var bildeFil = document.getElementById('Bilde_Fil');
-
-    if (serie && serNr && bildeFil) {
-        bildeFil.value = String(serie.value) + '-' + String(serNr.value);
-    }
-}
-
-var serieEl = document.getElementById('NMMSerie');
-if (serieEl) {
-    serieEl.addEventListener('change', oppdaterBildeFil);
-}
-
-var serNrEl = document.getElementById('SerNr');
-if (serNrEl) {
-    serNrEl.addEventListener('input', oppdaterBildeFil);
-}
-</script>
-
-<?php
-require_once __DIR__ . '/../../includes/layout_slutt.php';
+<?php require_once __DIR__ . '/../../includes/layout_slutt.php'; ?>

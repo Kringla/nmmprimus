@@ -1,0 +1,19 @@
+Prosjekt: nmmprimus
+
+AGENTS.md gjelder og har forrang.
+Primus_PI.md er aktiv.
+
+Aktivt trinn/kapittel:
+- [angi trinn, f.eks. Migreringsplan Trinn 6 / Primus_PI §3]
+
+Autoritative kilder:
+- Project Documents for nmmprimus
+- Filer eksplisitt vedlagt i denne chatten
+
+Ikke gjett.
+Si ifra før arbeid starter dersom noe mangler.
+
+Leveranseform:
+- Kun patcher iht. AGENTS.md
+- Ingen linjenummer
+- 3 linjer før/etter eller komplett fil
