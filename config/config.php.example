@@ -1,0 +1,15 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * config/config.php.example
+ * 
+ * KOPIER DENNE FILEN TIL config.php OG FYLL INN DINE VERDIER
+ * 
+ * VIKTIG: config.php skal IKKE legges inn i versjonskontroll!
+ */
+
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'nmmprimus');
+define('DB_USER', 'din_bruker');
+define('DB_PASS', 'ditt_passord');

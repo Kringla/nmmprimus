@@ -12,8 +12,8 @@ $cu = current_user();
 $pageTitle = 'NMMPrimus - Oversikt';
 $redirectTarget = BASE_URL . '/modules/primus/primus_main.php';
 
-// Automatisk videresending til hovedsiden etter 5 sekunder
-header('Refresh: 5; url=' . $redirectTarget);
+// Automatisk videresending til hovedsiden etter 3 sekunder
+header('Refresh: 3; url=' . $redirectTarget);
 
 require_once __DIR__ . '/includes/layout_start.php';
 ?>

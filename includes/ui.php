@@ -40,7 +40,12 @@ function ui_table_start(array $headers): void
 {
     echo '<table><thead><tr>';
     foreach ($headers as $h) {
-        echo '<th>' . h((string)$h) . '</th>';
+        // Allow HTML if header contains tags, otherwise escape
+        if (strpos($h, '<') !== false) {
+            echo '<th>' . $h . '</th>';
+        } else {
+            echo '<th>' . h((string)$h) . '</th>';
+        }
     }
     echo '</tr></thead><tbody>';
 }

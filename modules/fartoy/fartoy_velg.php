@@ -10,8 +10,13 @@ require_login();
 
 $fotoId = filter_input(INPUT_GET, 'Foto_ID', FILTER_VALIDATE_INT);
 $ret    = (string)($_GET['ret'] ?? '');
+$mode   = (string)($_GET['mode'] ?? '');
+
+// Debug: log what we received
+error_log("fartoy_velg.php - Foto_ID: " . var_export($fotoId, true) . ", ret: " . var_export($ret, true) . ", mode: " . var_export($mode, true));
 
 if (!$fotoId || $ret === '') {
+    error_log("fartoy_velg.php - Missing Foto_ID or ret, redirecting to main");
     redirect('/nmmprimus/modules/primus/primus_main.php');
 }
 
@@ -28,6 +33,9 @@ $liste = primus_hent_skip_liste($sok);
             <form method="get" class="mb-3" style="display:flex; gap:12px; align-items:end;">
                 <input type="hidden" name="Foto_ID" value="<?= h((string)$fotoId) ?>">
                 <input type="hidden" name="ret" value="<?= h($ret) ?>">
+                <?php if ($mode !== ''): ?>
+                    <input type="hidden" name="mode" value="<?= h($mode) ?>">
+                <?php endif; ?>
 
                 <div>
                     <label for="sok">Søk fartøynavn</label><br>
@@ -75,9 +83,19 @@ $liste = primus_hent_skip_liste($sok);
                             $byg = (string)($r['BYG'] ?? '');
                             $kal = (string)($r['KAL'] ?? '');
 
-                            $url = $ret
-                                . (str_contains($ret, '?') ? '&' : '?')
-                                . 'add_nmm_id=' . rawurlencode($id);
+                            // Use appropriate parameter name based on mode
+                            $param = ($mode === 'add_avbildet') ? 'add_avbildet_nmm_id' : 'add_nmm_id';
+
+                            // Build return URL - handle both relative and absolute paths
+                            $returnUrl = $ret;
+                            if (!str_starts_with($ret, 'http') && !str_starts_with($ret, '/')) {
+                                // Relative path - prepend ../primus/
+                                $returnUrl = '../primus/' . $ret;
+                            }
+
+                            $url = $returnUrl
+                                . (str_contains($returnUrl, '?') ? '&' : '?')
+                                . $param . '=' . rawurlencode($id);
                             ?>
                             <tr>
                                 <td><?= h($fty) ?></td>

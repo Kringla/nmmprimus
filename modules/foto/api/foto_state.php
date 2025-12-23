@@ -4,13 +4,14 @@ declare(strict_types=1);
 /**
  * API – foto_state.php
  * Ren hendelses-/iCh-motor
- * Ingen databaseavhengighet
  */
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/nmmprimus/includes/db.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/nmmprimus/includes/foto_flyt.php';
+require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/db.php';
+require_once __DIR__ . '/../../../includes/foto_flyt.php';
 
-session_start();
+// Krev innlogging
+require_login();
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -95,4 +96,4 @@ echo json_encode([
         'skalTommes' => $skalTommes,
         'verdier'    => $verdier,
     ],
-]);
+], JSON_UNESCAPED_UNICODE);

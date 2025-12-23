@@ -35,6 +35,10 @@ html, body {
     padding: 1rem;
 }
 
+.container-fluid {
+    padding: 1rem;
+}
+
 /* Typography */
 h1, h2, h3 {
     margin-top: 0;

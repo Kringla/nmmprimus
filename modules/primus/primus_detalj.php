@@ -1,14 +1,23 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../includes/layout_start.php';
+/**
+ * primus_detalj.php
+ *
+ * Detaljvisning og redigering av foto.
+ * Tilsvarer Access-form: frmNMMPrimus.
+ */
+
+// VIKTIG: Auth og validering FØR layout
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../config/constants.php';
 require_once __DIR__ . '/primus_modell.php';
 require_once __DIR__ . '/../foto/foto_modell.php';
 
 require_login();
+
 $db = db();
 
 $fotoId = filter_input(INPUT_GET, 'Foto_ID', FILTER_VALIDATE_INT);
@@ -20,10 +29,13 @@ $foto = foto_hent_en($db, $fotoId);
 if (!$foto) {
     redirect('primus_main.php');
 }
+
+// BASE_URL for JavaScript
+$baseUrlJs = base_url_js();
+
 // --------------------------------------------------
-
-
-/* ---------- helpers ---------- */
+// Helpers for form fields
+// --------------------------------------------------
 function txt(string $n, string $l, string $v = '', bool $readonly = false, string $width = '100%'): void
 {
     $ro = $readonly ? 'readonly' : '';
@@ -76,10 +88,11 @@ function combo(string $n, string $l, array $opts, string $v = '', string $width 
 // H2-modus: kandidatpanel klikkbart kun ved ny rad
 // --------------------------------------------------
 $h2 = (int)($_SESSION['primus_h2'] ?? 0) === 1;
+
 // --------------------------------------------------
 // Defaults i Øvrige (kun ved ny rad / H2)
 // Access-paritet iht Primus_Schema.md
-// --------------------------------------------------|
+// --------------------------------------------------
 if ($h2) {
     if (empty($foto['Status'])) {
         $foto['Status'] = 'Original';
@@ -99,6 +112,7 @@ $svarthvittValg = ['Svart-hvit', 'Farge', 'Håndkolorert'];
 if (!isset($foto['Svarthvitt']) || $foto['Svarthvitt'] === '' || $foto['Svarthvitt'] === null) {
     $foto['Svarthvitt'] = $svarthvittValg[0];
 }
+
 // --------------------------------------------------
 // Hendelsesmodus (iCh) – session-paritet
 // --------------------------------------------------
@@ -129,12 +143,15 @@ $kandidatSok = trim((string)($_GET['k_sok'] ?? ''));
 $kandidater = $h2 ? primus_hent_skip_liste($kandidatSok) : [];
 
 // --------------------------------------------------
-// "Legg til i ‘Avbildet’" (additiv via fartoy_velg.php)
+// "Legg til i 'Avbildet'" (additiv via fartoy_velg.php)
 // Returnerer ?add_avbildet_nmm_id=...
 // --------------------------------------------------
 $addAvbId = filter_input(INPUT_GET, 'add_avbildet_nmm_id', FILTER_VALIDATE_INT);
+error_log("primus_detalj.php - add_avbildet_nmm_id: " . var_export($addAvbId, true));
 if ($addAvbId) {
+    error_log("primus_detalj.php - Processing add to Avbildet for NMM_ID: " . $addAvbId);
     $felt = primus_hent_kandidat_felter((int)$addAvbId);
+    error_log("primus_detalj.php - Kandidat felter: " . var_export($felt, true));
     if (!empty($felt['Avbildet']) && $felt['ok']) {
         $ny = trim((string)$felt['Avbildet']);
 
@@ -164,6 +181,14 @@ if ($addAvbId) {
         }
 
         $foto['Avbildet'] = implode($separator, $liste);
+
+        // Save the updated Avbildet to database
+        $stmt = $db->prepare("UPDATE nmmfoto SET Avbildet = :avbildet WHERE Foto_ID = :foto_id");
+        $stmt->execute([
+            'avbildet' => $foto['Avbildet'],
+            'foto_id' => $fotoId
+        ]);
+        error_log("primus_detalj.php - Saved updated Avbildet to database");
     }
 
     // Fjern query-param fra URL (men behold Foto_ID og evt k_sok)
@@ -177,7 +202,11 @@ if ($addAvbId) {
 // --------------------------------------------------
 // POST: lagre foto (først her skjer DB-lagring)
 // --------------------------------------------------
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (is_post()) {
+    if (!csrf_validate()) {
+        die('Ugyldig forespørsel (CSRF).');
+    }
+    
     $data = $_POST;
     $data['Foto_ID'] = $fotoId;
 
@@ -210,7 +239,6 @@ if ($nmmSerie !== '' && str_starts_with($bild, $nmmSerie)) {
     }
 }
 
-
 // --------------------------------------------------
 // ValgtFartøy + FTO: alltid basert på valgt NMM_ID
 // (hvis NMM_ID finnes)
@@ -227,31 +255,44 @@ if ($aktNmmId > 0) {
     }
 }
 
+// NÅ kan vi inkludere layout (etter all logikk)
+$pageTitle = 'Primus – foto';
+require_once __DIR__ . '/../../includes/layout_start.php';
 ?>
+
 <div class="container-fluid">
-    <h1>Primus – foto</h1>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h1 style="margin:0;">Primus – foto</h1>
+        <div style="display:flex; gap:12px;">
+            <button type="submit" form="foto-form" class="btn btn-primary">Oppdater</button>
+            <a href="primus_main.php" class="btn btn-secondary">Tilbake</a>
+        </div>
+    </div>
 
     <div class="card">
         <div class="card-body">
 
             <form method="post" id="foto-form">
+                <?= csrf_field(); ?>
 
                 <!-- Kandidatstyrt NMM_ID (H2). I H1 beholder vi DB-verdi. -->
                 <input type="hidden" name="NMM_ID" id="NMM_ID" value="<?= h((string)($foto['NMM_ID'] ?? '')) ?>">
 
-                <!-- TOPP: ValgtFartøy + FTO -->
-                <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
-                    <?php txt('ValgtFartoy_vis', 'Valgt fartøy', $valgtFartoyVis, true, '420px'); ?>
-                    <?php txt('FTO_vis', 'Bilde kommentarer', $ftoVis, true, '220px'); ?>
+                <!-- TOPP: ValgtFartøy -->
+                <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:center; margin-bottom:16px;">
+                    <div class="form-group" style="width:420px; margin:0;">
+                        <label for="ValgtFartoy_vis" style="text-align:center; display:block;">Valgt fartøy</label>
+                        <input type="text" name="ValgtFartoy_vis" id="ValgtFartoy_vis" value="<?= h($valgtFartoyVis) ?>" readonly style="text-align:center; font-size:1.2em; font-weight:bold; font-family:Arial, sans-serif; width:100%;">
+                    </div>
                 </div>
 
                 <hr>
 
                 <!-- Serie / fil -->
                 <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
-                    <div class="form-group" style="max-width:15ch; width:100%;">
+                    <div class="form-group" style="flex:0 0 15ch;">
                         <label for="NMMSerie">NSM serie</label>
-                        <select name="NMMSerie" id="NMMSerie" style="max-width:15ch; width:100%;">
+                        <select name="NMMSerie" id="NMMSerie" style="width:100%;">
                             <?php
                             // Enkel serie-liste fra bildeserie-tabellen (scroll i select)
                             $serier = primus_hent_bildeserier();
@@ -271,8 +312,18 @@ if ($aktNmmId > 0) {
                         $bildeFilVis = $nmmSerie . '-' . (string)$sernr;
                     }
                     ?>
-                    <?php num('SerNr', 'Serienr', (int)$sernr, false, '7ch'); ?>
-                    <?php txt('Bilde_Fil', 'Bildefil', $bildeFilVis, false, '520px'); ?>
+                    <div class="form-group" style="flex:0 0 7ch;">
+                        <label for="SerNr">Serienr</label>
+                        <input type="number" name="SerNr" id="SerNr" value="<?= h((string)$sernr) ?>">
+                    </div>
+                    <div class="form-group" style="flex:0 0 15ch;">
+                        <label for="Bilde_Fil">Bildefil</label>
+                        <input type="text" name="Bilde_Fil" id="Bilde_Fil" value="<?= h($bildeFilVis) ?>" readonly>
+                    </div>
+                    <div class="form-group" style="flex:1 1 auto; min-width:300px;">
+                        <label for="FTO_vis">Bilde kommentarer</label>
+                        <input type="text" name="FTO_vis" id="FTO_vis" value="<?= h($ftoVis) ?>" readonly>
+                    </div>
                 </div>
 
                 <hr>
@@ -286,7 +337,7 @@ if ($aktNmmId > 0) {
                                 <strong>Kandidater</strong>
                                 <?php if (!$h2): ?>
                                     <div style="font-size:12px; opacity:.7;">
-                                        (Kun aktiv ved “Nytt foto”)
+                                        (Kun aktiv ved "Nytt foto")
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -301,7 +352,6 @@ if ($aktNmmId > 0) {
                                         </div>
                                         <button class="btn btn-secondary" type="button" id="btn-kandidat-sok">Søk</button>
                                     </div>
-
 
                                     <div style="max-height:520px; overflow:auto; border:1px solid #ddd; padding:6px;">
                                         <table class="table table-sm" style="margin:0;">
@@ -363,9 +413,15 @@ if ($aktNmmId > 0) {
                                 area('Avbildet', 'Avbildet', (string)($foto['Avbildet'] ?? ''), 3);
                                 ?>
                                 <div class="mb-2">
+                                    <?php
+                                    $retUrl = 'primus_detalj.php?Foto_ID=' . (int)$fotoId;
+                                    if ($kandidatSok !== '') {
+                                        $retUrl .= '&k_sok=' . rawurlencode($kandidatSok);
+                                    }
+                                    ?>
                                     <a class="btn btn-secondary"
-                                       href="/nmmprimus/modules/fartoy/fartoy_velg.php?return=<?= rawurlencode('/nmmprimus/modules/primus/primus_detalj.php?Foto_ID=' . (int)$fotoId . ($kandidatSok !== '' ? '&k_sok=' . rawurlencode($kandidatSok) : '')) ?>&mode=add_avbildet">
-                                        Legg til i ‘Avbildet’
+                                       href="../fartoy/fartoy_velg.php?Foto_ID=<?= (int)$fotoId ?>&ret=<?= rawurlencode($retUrl) ?>&mode=add_avbildet">
+                                        Legg til i 'Avbildet'
                                     </a>
                                 </div>
 
@@ -376,7 +432,7 @@ if ($aktNmmId > 0) {
                                 ?>
                                 <div class="mb-2">
                                     <button type="button" class="btn btn-secondary" id="btn-leggtil-skipsportrett">
-                                        Legg til ‘Skipsportrett’
+                                        Legg til 'Skipsportrett'
                                     </button>
                                 </div>
 
@@ -424,19 +480,21 @@ if ($aktNmmId > 0) {
                                 ?>
                                 <hr>
                                 <?php
+                                $tilstandValg = ['God', 'Dårlig'];
+                                $tilstandVerdi = (string)($foto['Tilstand'] ?? 'God');
+                                if ($tilstandVerdi === '' || $tilstandVerdi === null) {
+                                    $tilstandVerdi = 'God';
+                                }
+
                                 combo('Svarthvitt', 'Svarthvitt', $svarthvittValg, (string)($foto['Svarthvitt'] ?? ''));
                                 txt('Status', 'Status', (string)($foto['Status'] ?? ''));
-                                txt('Tilstand', 'Tilstand', (string)($foto['Tilstand'] ?? ''));
+                                combo('Tilstand', 'Tilstand', $tilstandValg, $tilstandVerdi);
                                 ?>
                                 <hr>
                                 <?php area('Merknad', 'Merknad', (string)($foto['Merknad'] ?? ''), 4); ?>
                             </div>
 
                         </div>
-
-                        <br>
-                        <button class="btn btn-primary">Oppdater</button>
-                        <a href="primus_main.php" class="btn btn-secondary">Tilbake</a>
 
                     </div>
                 </div>
@@ -448,163 +506,174 @@ if ($aktNmmId > 0) {
 
 <script>
 (function(){
+    var baseUrl = <?= $baseUrlJs ?>;
 
-// ---------------- Tabs ----------------
-document.querySelectorAll('.primus-tab').forEach(tab => {
-  tab.addEventListener('click', function () {
-    const valgt = this.dataset.tab;
-    if (!valgt) return;
+    // ---------------- Tabs ----------------
+    document.querySelectorAll('.primus-tab').forEach(function(tab) {
+        tab.addEventListener('click', function () {
+            var valgt = this.dataset.tab;
+            if (!valgt) return;
 
-    document.querySelectorAll('.primus-tab')
-      .forEach(t => t.classList.toggle('is-active', t === this));
+            document.querySelectorAll('.primus-tab')
+                .forEach(function(t) { t.classList.toggle('is-active', t === tab); });
 
-    document.querySelectorAll('.primus-pane')
-      .forEach(p => p.classList.toggle('is-active', p.id === valgt));
+            document.querySelectorAll('.primus-pane')
+                .forEach(function(p) { p.classList.toggle('is-active', p.id === valgt); });
 
-    fetch('/nmmprimus/modules/primus/api/sett_session.php', {
-      method: 'POST',
-      headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: 'primus_tab=' + encodeURIComponent(valgt)
-    }).catch(()=>{});
-  });
-});
-
-// ---------------- Kandidatsøk (GET uten nested form) ----------------
-var sokBtn = document.getElementById('btn-kandidat-sok');
-if (sokBtn) {
-    sokBtn.addEventListener('click', function () {
-        var sok = document.getElementById('k_sok');
-        if (!sok) return;
-
-        var url = 'primus_detalj.php?Foto_ID=<?= (int)$fotoId ?>';
-        if (sok.value.trim() !== '') {
-            url += '&k_sok=' + encodeURIComponent(sok.value.trim());
-        }
-        window.location.href = url;
-    });
-}
-
-// ---------------- iCh → foto_state ----------------
-function oppdaterFotoState(){
-  const valgt=document.querySelector('input[name="iCh"]:checked');
-  if(!valgt) return;
-
-  fetch('/nmmprimus/modules/primus/api/sett_session.php',{
-    method:'POST',
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:'primus_iCh='+encodeURIComponent(valgt.value)
-  }).catch(()=>{});
-
-  fetch('/nmmprimus/modules/foto/api/foto_state.php',{
-    method:'POST',
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:'fmeHendelse='+encodeURIComponent(valgt.value)
-  })
-  .then(r=>r.ok?r.json():null)
-  .then(json=>{
-    if(!json||!json.ok||!json.data?.felter) return;
-
-    Object.keys(json.data.felter).forEach(id=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      el.disabled = false;
-      el.removeAttribute('data-foto-state');
+            fetch(baseUrl + '/modules/primus/api/sett_session.php', {
+                method: 'POST',
+                headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                body: 'primus_tab=' + encodeURIComponent(valgt)
+            }).catch(function(){});
+        });
     });
 
-    Object.entries(json.data.felter).forEach(([id,enabled])=>{
-      const el=document.getElementById(id);
-      if(!el) return;
+    // ---------------- Kandidatsøk (GET uten nested form) ----------------
+    var sokBtn = document.getElementById('btn-kandidat-sok');
+    if (sokBtn) {
+        sokBtn.addEventListener('click', function () {
+            var sok = document.getElementById('k_sok');
+            if (!sok) return;
 
-      el.disabled=!enabled;
-      el.dataset.fotoState=enabled?'aktiv':'inaktiv';
-
-      if(!enabled){
-        if(el.type==='checkbox'||el.type==='radio') el.checked=false;
-        else el.value='';
-      }else if(id==='Fotograf'&&!el.value.trim()){
-        el.value='10F:';
-      }
-    });
-  })
-  .catch(()=>{});
-}
-
-document.querySelectorAll('input[name="iCh"]')
-  .forEach(r=>r.addEventListener('change',oppdaterFotoState));
-
-oppdaterFotoState();
-
-// ---------------- Kandidatklikk (kun H2) ----------------
-const h2 = <?= $h2 ? 'true' : 'false' ?>;
-
-function settFelt(id, val){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.value = val ?? '';
-}
-
-function settVis(id, val){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.value = val ?? '';
-}
-
-if (h2) {
-  document.querySelectorAll('.kandidat-rad').forEach(row => {
-    row.addEventListener('click', function(){
-      const nmmId = this.dataset.nmmId;
-      if (!nmmId) return;
-
-      fetch('/nmmprimus/modules/primus/api/kandidat_data.php', {
-        method: 'POST',
-        headers: {'Content-Type':'application/x-www-form-urlencoded'},
-        body: 'NMM_ID=' + encodeURIComponent(nmmId)
-      })
-      .then(r => r.ok ? r.json() : null)
-      .then(json => {
-        if(!json || !json.ok || !json.data) return;
-
-        const d = json.data;
-
-        // Kandidatstyrt kontekst
-        settFelt('NMM_ID', nmmId);
-
-        // Overskriv felt i skjema (Access: SummaryFields)
-        settVis('ValgtFartoy_vis', d.ValgtFartoy || '');
-        settVis('FTO_vis', d.FTO || '');
-
-        settFelt('Avbildet', d.Avbildet || '');
-        settFelt('MotivType', d.MotivType || '-');
-        settFelt('MotivEmne', d.MotivEmne || '-');
-        settFelt('MotivKriteria', d.MotivKriteria || '-');
-
-        // Access-paritet: bygg MotivBeskr fra kandidatfelter (fallback til FTO hvis kandidat_data ikke leverer feltene)
-        var fty = (d.FTY || '').trim();
-        var fna = (d.FNA || '').trim();
-        var byg = (d.BYG || '').trim();
-        var ver = (d.VER || '').trim();
-        var xna = parseInt(d.XNA || '0', 10);
-
-        // Access-paritet: sett IKKE MotivBeskr før fartøy er valgt
-        // Fallback: bruk FTO hvis tilgjengelig (siden FTO_vis settes korrekt fra API)
-        if (fty === '' || fna === '') {
-            var fto = (d.FTO || '').trim();
-            settFelt('MotivBeskr', fto !== '' ? fto : '');
-        } else {
-            var mb = '';
-            if (xna > 0) {
-                mb = fty + ' ' + fna + ' (Ex. ' + xna + ')(' + byg + ', ' + ver + ')';
-            } else {
-                mb = fty + ' ' + fna + ' (' + byg + ', ' + ver + ')';
+            var url = 'primus_detalj.php?Foto_ID=<?= (int)$fotoId ?>';
+            if (sok.value.trim() !== '') {
+                url += '&k_sok=' + encodeURIComponent(sok.value.trim());
             }
-            settFelt('MotivBeskr', mb);
-        }
+            window.location.href = url;
+        });
+    }
 
-      })
-      .catch(()=>{});
-    });
-  });
-}
+    // ---------------- iCh → foto_state ----------------
+    function oppdaterFotoState(){
+        var valgt = document.querySelector('input[name="iCh"]:checked');
+        if(!valgt) return;
+
+        fetch(baseUrl + '/modules/primus/api/sett_session.php', {
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            body:'primus_iCh=' + encodeURIComponent(valgt.value)
+        }).catch(function(){});
+
+        fetch(baseUrl + '/modules/foto/api/foto_state.php', {
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            body:'fmeHendelse=' + encodeURIComponent(valgt.value)
+        })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(json) {
+            if(!json || !json.ok || !json.data || !json.data.felter) return;
+
+            Object.keys(json.data.felter).forEach(function(id) {
+                var el = document.getElementById(id);
+                if(!el) return;
+                el.disabled = false;
+                el.removeAttribute('data-foto-state');
+            });
+
+            Object.keys(json.data.felter).forEach(function(id) {
+                var enabled = json.data.felter[id];
+                var el = document.getElementById(id);
+                if(!el) return;
+
+                el.disabled = !enabled;
+                el.dataset.fotoState = enabled ? 'aktiv' : 'inaktiv';
+
+                if(!enabled){
+                    if(el.type === 'checkbox' || el.type === 'radio') {
+                        el.checked = false;
+                    } else {
+                        el.value = '';
+                    }
+                } else if(id === 'Fotograf' && !el.value.trim()) {
+                    el.value = '10F:';
+                }
+            });
+
+            // Apply verdier (field values like Hendelse)
+            if(json.data.verdier) {
+                Object.keys(json.data.verdier).forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if(!el) return;
+                    el.value = json.data.verdier[id] || '';
+                });
+            }
+        })
+        .catch(function(){});
+    }
+
+    document.querySelectorAll('input[name="iCh"]')
+        .forEach(function(r) { r.addEventListener('change', oppdaterFotoState); });
+
+    oppdaterFotoState();
+
+    // ---------------- Kandidatklikk (kun H2) ----------------
+    var h2 = <?= $h2 ? 'true' : 'false' ?>;
+
+    function settFelt(id, val){
+        var el = document.getElementById(id);
+        if(!el) return;
+        el.value = val || '';
+    }
+
+    function settVis(id, val){
+        var el = document.getElementById(id);
+        if(!el) return;
+        el.value = val || '';
+    }
+
+    if (h2) {
+        document.querySelectorAll('.kandidat-rad').forEach(function(row) {
+            row.addEventListener('click', function(){
+                var nmmId = this.dataset.nmmId;
+                if (!nmmId) return;
+
+                fetch(baseUrl + '/modules/primus/api/kandidat_data.php', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                    body: 'NMM_ID=' + encodeURIComponent(nmmId)
+                })
+                .then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(json) {
+                    if(!json || !json.ok || !json.data) return;
+
+                    var d = json.data;
+
+                    // Kandidatstyrt kontekst
+                    settFelt('NMM_ID', nmmId);
+
+                    // Overskriv felt i skjema (Access: SummaryFields)
+                    settVis('ValgtFartoy_vis', d.ValgtFartoy || '');
+                    settVis('FTO_vis', d.FTO || '');
+
+                    settFelt('Avbildet', d.Avbildet || '');
+                    settFelt('MotivType', d.MotivType || '-');
+                    settFelt('MotivEmne', d.MotivEmne || '-');
+                    settFelt('MotivKriteria', d.MotivKriteria || '-');
+
+                    // Access-paritet: bygg MotivBeskr fra kandidatfelter
+                    var fty = (d.FTY || '').trim();
+                    var fna = (d.FNA || '').trim();
+                    var byg = (d.BYG || '').trim();
+                    var ver = (d.VER || '').trim();
+                    var xna = parseInt(d.XNA || '0', 10);
+
+                    if (fty === '' || fna === '') {
+                        var fto = (d.FTO || '').trim();
+                        settFelt('MotivBeskr', fto !== '' ? fto : '');
+                    } else {
+                        var mb = '';
+                        if (xna > 0) {
+                            mb = fty + ' ' + fna + ' (Ex. ' + xna + ')(' + byg + ', ' + ver + ')';
+                        } else {
+                            mb = fty + ' ' + fna + ' (' + byg + ', ' + ver + ')';
+                        }
+                        settFelt('MotivBeskr', mb);
+                    }
+                })
+                .catch(function(){});
+            });
+        });
+    }
 })();
 </script>
 
@@ -631,6 +700,74 @@ var serNrEl = document.getElementById('SerNr');
 if (serNrEl) {
     serNrEl.addEventListener('input', oppdaterBildeFil);
 }
+</script>
+
+<script>
+/* ---------------------------------------------
+   Tillegg, Motivbeskrivelse -> Motivbeskrivelse
+   --------------------------------------------- */
+(function() {
+    var tillegg = document.getElementById('MotivBeskrTillegg');
+    var motiv = document.getElementById('MotivBeskr');
+
+    if (!tillegg || !motiv) return;
+
+    function appendTillegg() {
+        var tilleggVal = tillegg.value.trim();
+        if (tilleggVal === '') return;
+
+        var motivVal = motiv.value.trim();
+        if (motivVal === '') {
+            motiv.value = tilleggVal;
+        } else {
+            motiv.value = motivVal + ' ' + tilleggVal;
+        }
+
+        // Keep value in Tillegg field for storage
+    }
+
+    // On blur (when field loses focus)
+    tillegg.addEventListener('blur', appendTillegg);
+
+    // On Enter key
+    tillegg.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            appendTillegg();
+        }
+    });
+})();
+</script>
+
+<script>
+/* ---------------------------------------------
+   Legg til 'Skipsportrett' button
+   --------------------------------------------- */
+(function() {
+    var btn = document.getElementById('btn-leggtil-skipsportrett');
+    if (!btn) return;
+
+    btn.addEventListener('click', function() {
+        var motivType = document.getElementById('MotivType');
+        if (!motivType) return;
+
+        var current = motivType.value.trim();
+        // Format from Access: ID;MotivType;UUID
+        var toAdd = '1060;Skipsportrett;4D9A6929-3BE1-42E4-B5F4-A2782C75A054';
+
+        // Check if 'Skipsportrett' already exists
+        if (current.toLowerCase().includes('skipsportrett')) {
+            return; // Already present
+        }
+
+        // Append with newline separator if there's existing content
+        if (current === '' || current === '-') {
+            motivType.value = toAdd;
+        } else {
+            motivType.value = current + '\n' + toAdd;
+        }
+    });
+})();
 </script>
 
 <?php

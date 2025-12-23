@@ -35,8 +35,8 @@ if (!isset($pageTitle)) {
 <header class="site-header">
     <div class="site-header-top">
         <div class="container site-header-row">
-            <div class="site-brand">
-                <a class="site-brand-title" href="<?= BASE_URL; ?>/index.php">NMMPrimus</a>
+            <div class="site-brand" >
+                <a class="site-brand-title" href="<?= BASE_URL; ?>/index.php"style="margin-left: 2ch";>NMMPrimus</a>
             </div>
             <nav class="site-nav">
                 <?php if ($cu): ?>
