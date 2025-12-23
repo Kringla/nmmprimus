@@ -84,12 +84,27 @@ if (is_post() && ($_POST['action'] ?? '') === 'nytt_foto') {
 }
 
 // --------------------------------------------------
+// Paging
+// --------------------------------------------------
+$side = filter_input(INPUT_GET, 'side', FILTER_VALIDATE_INT) ?: 1;
+if ($side < 1) $side = 1;
+
+$perSide = 20;
+$offset = ($side - 1) * $perSide;
+
+// --------------------------------------------------
 // Data til visning
 // --------------------------------------------------
 $serier    = primus_hent_bildeserier();
-$fotoListe = ($valgtSerie !== null && $valgtSerie !== '')
-    ? primus_hent_foto_for_serie((string)$valgtSerie)
-    : [];
+$fotoListe = [];
+$totaltAntall = 0;
+
+if ($valgtSerie !== null && $valgtSerie !== '') {
+    $fotoListe = primus_hent_foto_for_serie((string)$valgtSerie, $perSide, $offset);
+    $totaltAntall = primus_hent_totalt_antall_foto((string)$valgtSerie);
+}
+
+$totaltSider = $totaltAntall > 0 ? (int)ceil($totaltAntall / $perSide) : 0;
 
 // BASE_URL for JavaScript
 $baseUrlJs = base_url_js();
@@ -135,6 +150,12 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
 <?php ui_card_start('Foto i valgt serie'); ?>
 
+<?php if ($totaltAntall > 0): ?>
+    <div style="margin-bottom: 12px; color: #666; font-size: 0.95em;">
+        Viser <?= ($offset + 1) ?> - <?= min($offset + $perSide, $totaltAntall) ?> av <?= $totaltAntall ?> foto
+    </div>
+<?php endif; ?>
+
 <?php if (empty($fotoListe)): ?>
 
     <?php ui_empty('Ingen foto funnet for valgt serie.'); ?>
@@ -174,6 +195,26 @@ require_once __DIR__ . '/../../includes/layout_start.php';
         ui_table_end();
         ?>
     </div>
+
+    <?php if ($totaltSider > 1): ?>
+        <div class="primus-paging">
+            <?php if ($side > 1): ?>
+                <a href="?side=<?= $side - 1 ?>" class="btn btn-secondary">« Forrige</a>
+            <?php else: ?>
+                <span class="btn btn-secondary" style="opacity:0.5; cursor:not-allowed;">« Forrige</span>
+            <?php endif; ?>
+
+            <span class="primus-paging-info">
+                Side <?= $side ?> av <?= $totaltSider ?>
+            </span>
+
+            <?php if ($side < $totaltSider): ?>
+                <a href="?side=<?= $side + 1 ?>" class="btn btn-secondary">Neste »</a>
+            <?php else: ?>
+                <span class="btn btn-secondary" style="opacity:0.5; cursor:not-allowed;">Neste »</span>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
 <?php endif; ?>
 
@@ -235,6 +276,20 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 }
 .row-clickable:hover {
     background: #e8f4ff;
+}
+.primus-paging {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+    padding: 12px;
+}
+.primus-paging-info {
+    font-size: 0.95em;
+    color: #666;
+    min-width: 120px;
+    text-align: center;
 }
 </style>
 

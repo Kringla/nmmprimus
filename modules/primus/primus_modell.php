@@ -87,7 +87,7 @@ if (!function_exists('primus_lagre_sist_valgte_serie')) {
 -------------------------------------------------- */
 
 if (!function_exists('primus_hent_foto_for_serie')) {
-    function primus_hent_foto_for_serie(string $serie): array
+    function primus_hent_foto_for_serie(string $serie, int $limit = 20, int $offset = 0): array
     {
         $db = db();
         $stmt = $db->prepare("
@@ -95,10 +95,28 @@ if (!function_exists('primus_hent_foto_for_serie')) {
             FROM nmmfoto
             WHERE LEFT(Bilde_Fil, 8) = :serie
             ORDER BY Bilde_Fil DESC
-            LIMIT 20
+            LIMIT :limit OFFSET :offset
+        ");
+        $stmt->bindValue('serie', $serie, PDO::PARAM_STR);
+        $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue('offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+}
+
+if (!function_exists('primus_hent_totalt_antall_foto')) {
+    function primus_hent_totalt_antall_foto(string $serie): int
+    {
+        $db = db();
+        $stmt = $db->prepare("
+            SELECT COUNT(*) as total
+            FROM nmmfoto
+            WHERE LEFT(Bilde_Fil, 8) = :serie
         ");
         $stmt->execute(['serie' => $serie]);
-        return $stmt->fetchAll();
+        $row = $stmt->fetch();
+        return (int)($row['total'] ?? 0);
     }
 }
 
@@ -280,27 +298,6 @@ if (!function_exists('primus_hent_kandidat_felter')) {
             'VER'           => $ver,
             'XNA'           => $xna,
         ];
-    }
-}
-/* --------------------------------------------------
-   FOTO – hent én rad
--------------------------------------------------- */
-if (!function_exists('primus_hent_foto')) {
-    function primus_hent_foto(int $fotoId): ?array
-    {
-        $db = db();
-
-        $stmt = $db->prepare("
-            SELECT *
-            FROM nmmfoto
-            WHERE Foto_ID = :id
-        ");
-        $stmt->execute([
-            'id' => $fotoId
-        ]);
-
-        $row = $stmt->fetch();
-        return $row ?: null;
     }
 }
 

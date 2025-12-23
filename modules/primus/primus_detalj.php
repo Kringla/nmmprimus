@@ -147,11 +147,8 @@ $kandidater = $h2 ? primus_hent_skip_liste($kandidatSok) : [];
 // Returnerer ?add_avbildet_nmm_id=...
 // --------------------------------------------------
 $addAvbId = filter_input(INPUT_GET, 'add_avbildet_nmm_id', FILTER_VALIDATE_INT);
-error_log("primus_detalj.php - add_avbildet_nmm_id: " . var_export($addAvbId, true));
 if ($addAvbId) {
-    error_log("primus_detalj.php - Processing add to Avbildet for NMM_ID: " . $addAvbId);
     $felt = primus_hent_kandidat_felter((int)$addAvbId);
-    error_log("primus_detalj.php - Kandidat felter: " . var_export($felt, true));
     if (!empty($felt['Avbildet']) && $felt['ok']) {
         $ny = trim((string)$felt['Avbildet']);
 
@@ -188,7 +185,6 @@ if ($addAvbId) {
             'avbildet' => $foto['Avbildet'],
             'foto_id' => $fotoId
         ]);
-        error_log("primus_detalj.php - Saved updated Avbildet to database");
     }
 
     // Fjern query-param fra URL (men behold Foto_ID og evt k_sok)
@@ -200,13 +196,64 @@ if ($addAvbId) {
 }
 
 // --------------------------------------------------
+// POST: kopier foto (Access: cmdKopier)
+// --------------------------------------------------
+if (is_post() && ($_POST['action'] ?? '') === 'kopier_foto') {
+    if (!csrf_validate()) {
+        die('Ugyldig forespørsel (CSRF).');
+    }
+
+    // Lagre eksisterende rad først
+    if ($db->inTransaction()) {
+        $db->commit();
+    }
+
+    // Hent serie fra eksisterende foto
+    $eksisterende = foto_hent_en($db, $fotoId);
+    $bildeFil = (string)($eksisterende['Bilde_Fil'] ?? '');
+    $serie = '';
+
+    if (strlen($bildeFil) >= 8) {
+        $serie = substr($bildeFil, 0, 8);
+    }
+
+    // Kopier foto (nullstiller Bildehistorikk og Øvrige)
+    $nyFotoId = foto_kopier($db, $fotoId);
+
+    // Oppdater SerNr og Bilde_Fil for den nye kopien
+    if ($serie !== '') {
+        $nesteSerNr = primus_hent_neste_sernr($serie);
+
+        $stmt = $db->prepare("
+            UPDATE nmmfoto
+            SET SerNr = :sernr,
+                Bilde_Fil = :bilde_fil,
+                URL_Bane = :url_bane
+            WHERE Foto_ID = :foto_id
+        ");
+        $stmt->execute([
+            'sernr' => $nesteSerNr,
+            'bilde_fil' => $serie . '-' . $nesteSerNr,
+            'url_bane' => $serie . ' -001-999 Damp og Motor',
+            'foto_id' => $nyFotoId
+        ]);
+    }
+
+    // H2-modus = 0 (venstre panel IKKE synlig/klikkbart)
+    $_SESSION['primus_h2'] = 0;
+    $_SESSION['primus_iCh'] = 1; // Hendelsesmodus = Ingen
+
+    redirect('primus_detalj.php?Foto_ID=' . $nyFotoId);
+}
+
+// --------------------------------------------------
 // POST: lagre foto (først her skjer DB-lagring)
 // --------------------------------------------------
 if (is_post()) {
     if (!csrf_validate()) {
         die('Ugyldig forespørsel (CSRF).');
     }
-    
+
     $data = $_POST;
     $data['Foto_ID'] = $fotoId;
 
@@ -265,6 +312,11 @@ require_once __DIR__ . '/../../includes/layout_start.php';
         <h1 style="margin:0;">Primus – foto</h1>
         <div style="display:flex; gap:12px;">
             <button type="submit" form="foto-form" class="btn btn-primary">Oppdater</button>
+            <form method="post" style="display:inline; margin:0;">
+                <?= csrf_field(); ?>
+                <input type="hidden" name="action" value="kopier_foto">
+                <button type="submit" class="btn btn-info" onclick="return confirm('Kopiere dette fotoet?');">Kopier foto</button>
+            </form>
             <a href="primus_main.php" class="btn btn-secondary">Tilbake</a>
         </div>
     </div>

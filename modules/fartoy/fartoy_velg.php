@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../includes/layout_start.php';
 require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../primus/primus_modell.php';
@@ -12,17 +11,14 @@ $fotoId = filter_input(INPUT_GET, 'Foto_ID', FILTER_VALIDATE_INT);
 $ret    = (string)($_GET['ret'] ?? '');
 $mode   = (string)($_GET['mode'] ?? '');
 
-// Debug: log what we received
-error_log("fartoy_velg.php - Foto_ID: " . var_export($fotoId, true) . ", ret: " . var_export($ret, true) . ", mode: " . var_export($mode, true));
-
 if (!$fotoId || $ret === '') {
-    error_log("fartoy_velg.php - Missing Foto_ID or ret, redirecting to main");
     redirect('/nmmprimus/modules/primus/primus_main.php');
 }
 
 $sok = trim((string)($_GET['sok'] ?? ''));
 $liste = primus_hent_skip_liste($sok);
 
+require_once __DIR__ . '/../../includes/layout_start.php';
 ?>
 <div class="container-fluid">
     <h1>Velg fartøy</h1>

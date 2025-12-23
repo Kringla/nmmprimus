@@ -15,93 +15,7 @@ Denne guiden beskriver hvordan du setter opp prosjektet for lokal utvikling og p
 
 ## 2. Lokal utvikling med XAMPP
 
-### 2.1 Installer XAMPP
-
-1. Last ned XAMPP fra https://www.apachefriends.org/
-2. Installer med PHP 8.x
-3. Start Apache og MySQL fra XAMPP Control Panel
-
-### 2.2 Klon/kopier prosjektet
-
-Plasser prosjektmappen i:
-```
-C:\xampp\htdocs\nmmprimus\
-```
-
-Filstrukturen skal være:
-```
-C:\xampp\htdocs\nmmprimus\
-├── assets/
-│   └── app.css
-├── config/
-│   ├── config.php          ← Lokal konfigurasjon
-│   ├── configProd.php      ← Produksjonskonfigurasjon (IKKE bruk lokalt)
-│   ├── constants.php       ← Lokal BASE_URL
-│   └── constantsProd.php
-├── doc/
-├── includes/
-├── modules/
-├── index.php
-├── login.php
-├── logout.php
-└── AGENTS.md
-```
-
-### 2.3 Opprett databasen
-
-1. Åpne phpMyAdmin: http://localhost/phpmyadmin
-2. Opprett ny database: `nmmprimus`
-3. Velg database og importer schema:
-   - Klikk "Import"
-   - Velg filen `doc/Primus_Schema.md` (eller kjør SQL manuelt)
-
-### 2.4 Opprett testbruker
-
-Kjør følgende SQL i phpMyAdmin:
-
-```sql
--- Opprett bruker med passord "test123"
-INSERT INTO user (email, password, IsActive, role) 
-VALUES (
-    'test@example.com', 
-    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 
-    1, 
-    'admin'
-);
-```
-
-**Merk:** Passordet over er en bcrypt-hash av "test123". For å generere egen hash:
-
-```php
-<?php
-echo password_hash('ditt_passord', PASSWORD_BCRYPT);
-```
-
-### 2.5 Konfigurer prosjektet
-
-**config/config.php** (lokal):
-```php
-<?php
-declare(strict_types=1);
-
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'nmmprimus');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-```
-
-**config/constants.php** (lokal):
-```php
-<?php
-define('BASE_URL', '/nmmprimus');
-```
-
-### 2.6 Test installasjonen
-
-1. Åpne http://localhost/nmmprimus/
-2. Du skal bli omdirigert til login-siden
-3. Logg inn med testbrukeren
-4. Du skal se velkomstsiden og bli videresendt til primus_main.php
+Er utført!
 
 ---
 
@@ -109,38 +23,16 @@ define('BASE_URL', '/nmmprimus');
 
 ### 3.1 Filoverføring
 
-1. Last opp alle filer til webhotellet via FTP
-2. Plasser i riktig mappe (avhengig av domene/undermappe)
+Utført!
 
 ### 3.2 Konfigurer for produksjon
 
-**Viktig:** Ikke overfør `config/config.php` - lag en egen fil på serveren, eller:
-
-1. Gi nytt navn til `config/configProd.php` → `config/config.php`
-2. Oppdater databasekredentialene
-
-**Anbefalt:** Bruk miljøvariabler i stedet for hardkodede passord:
-
-```php
-<?php
-declare(strict_types=1);
-
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_NAME', getenv('DB_NAME') ?: 'nmmprimus');
-define('DB_USER', getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('DB_PASS') ?: '');
-```
+Utført!
 
 ### 3.3 Oppdater BASE_URL
 
-I `config/constants.php`, sett riktig base URL:
+Utført!
 
-```php
-// Hvis applikasjonen ligger i rot:
-define('BASE_URL', '');
-
-// Hvis applikasjonen ligger i undermappe:
-define('BASE_URL', '/nmmprimus');
 ```
 
 ### 3.4 Sett riktige filtillatelser
@@ -158,6 +50,8 @@ chmod 755 /path/to/nmmprimus/config
 ## 4. Database
 
 ### 4.1 Tabelloversikt
+
+`Primus_Schema.md` gir schema!
 
 | Tabell | Beskrivelse |
 |--------|-------------|
@@ -191,7 +85,7 @@ user_remember_tokens.user_id → user.user_id
 ---
 
 ## 5. Feilsøking
-
+Er notert!
 ### Problem: "Could not connect to database"
 
 1. Sjekk at MySQL kjører i XAMPP
@@ -226,15 +120,7 @@ Sjekk at `BASE_URL` i `constants.php` er korrekt satt.
 ---
 
 ## 6. Sikkerhetshensyn
-
-1. **Aldri** commit `config/config.php` med produksjonspassord til Git
-2. Legg til i `.gitignore`:
-   ```
-   config/config.php
-   ```
-3. Bruk sterke passord for databasebruker
-4. Hold PHP og MySQL oppdatert
-5. Aktiver HTTPS i produksjon
+Utført.
 
 ---
 

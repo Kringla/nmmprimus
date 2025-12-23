@@ -17,7 +17,7 @@ Enkelhet i kode og visuelt inntrykk er viktig.
 Databasen inneholder tabeller som er gitt i dokumentet `Primus_Schema.md`. Resultattabellen er `nmmfoto`.
 
 ##RESSURSBRUK:
-Jeg er leder av utviklingen, men koder ikke selv.
+Jeg er leder av utviklingen, men koder ikke selv. Jeg er ganske kjent med Access VBA og SQL.
 Du er den som utvikler koden som er nødvendig for at prosjektets mål blir nådd.
 
 ##RESSURSRAMMEBETINGELSER:
