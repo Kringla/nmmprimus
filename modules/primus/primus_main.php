@@ -18,6 +18,7 @@ require_login();
 
 $user = current_user();
 $userId = (int)$user['user_id'];
+$isAdmin = ($user['role'] === 'admin');
 $db = db();
 
 // --------------------------------------------------
@@ -59,9 +60,14 @@ if (is_post() && ($_POST['action'] ?? '') === 'nytt_foto') {
     if (!csrf_validate()) {
         die('Ugyldig forespørsel (CSRF).');
     }
-    
+
     $serie = (string)$valgtSerie;
     $serNr = primus_hent_neste_sernr($serie);
+
+    // Validering: SerNr må være mellom 1 og 999
+    if ($serNr < 1 || $serNr > 999) {
+        die('FEIL: SerNr må være mellom 1 og 999. Neste tilgjengelige SerNr (' . $serNr . ') er utenfor tillatt område.');
+    }
 
     // Bilde_Fil: serie + '-' + serienr (Access-paritet)
     $bildeFil = $serie . '-' . (int)$serNr;
@@ -145,6 +151,12 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             Nytt foto i valgt serie
         </button>
     </form>
+
+    <?php if ($isAdmin): ?>
+    <button type="button" class="btn btn-primary" onclick="showExportDialog()">
+        Eksporter til Excel
+    </button>
+    <?php endif; ?>
 </div>
 <?php ui_card_end(); ?>
 
@@ -167,17 +179,26 @@ require_once __DIR__ . '/../../includes/layout_start.php';
         ui_table_start([
             'Bildefil <span style="font-size:0.85em; font-weight:normal; opacity:0.7;">(Dbl-click for details)</span>',
             'Motivbeskrivelse',
-            'Overført',
+            $isAdmin ? 'Overført <span style="font-size:0.85em; font-weight:normal; opacity:0.7;">(klikk for å endre)</span>' : 'Overført',
             '' // slett
         ]);
 
         foreach ($fotoListe as $row) {
             $fotoId = (int)$row['Foto_ID'];
+            $transferred = !empty($row['Transferred']);
 
             echo '<tr class="row-clickable" data-foto-id="' . h((string)$fotoId) . '">';
             echo '<td>' . h((string)$row['Bilde_Fil']) . '</td>';
             echo '<td>' . h((string)($row['MotivBeskr'] ?? '')) . '</td>';
-            echo '<td>' . (!empty($row['Transferred']) ? 'Ja' : 'Nei') . '</td>';
+
+            // Overført column - checkbox for admin, text for regular users
+            echo '<td class="transferred-cell">';
+            if ($isAdmin) {
+                echo '<input type="checkbox" class="transferred-checkbox" data-foto-id="' . $fotoId . '" ' . ($transferred ? 'checked' : '') . '>';
+            } else {
+                echo $transferred ? 'Ja' : 'Nei';
+            }
+            echo '</td>';
 
             // Slett-knapp som POST-skjema med CSRF
             echo '<td style="white-space:nowrap;">';
@@ -220,6 +241,38 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
 <?php ui_card_end(); ?>
 </div> <!-- /.primus-main-page -->
+
+<?php if ($isAdmin): ?>
+<!-- Export Dialog Modal -->
+<div id="exportDialog" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Eksporter til Excel</h2>
+            <span class="close" onclick="closeExportDialog()">&times;</span>
+        </div>
+        <form method="post" action="export_excel.php" target="_blank" id="exportForm">
+            <?= csrf_field(); ?>
+            <input type="hidden" name="serie" value="<?= h($valgtSerie); ?>">
+            <div class="modal-body">
+                <p><strong>Serie:</strong> <?= h($valgtSerie) ?></p>
+                <div class="form-group">
+                    <label for="export_sernr_fra">SerNr fra (lav):</label>
+                    <input type="number" name="sernr_fra" id="export_sernr_fra" required min="1" max="999" style="width: 100px;">
+                </div>
+                <div class="form-group">
+                    <label for="export_sernr_til">SerNr til (høy):</label>
+                    <input type="number" name="sernr_til" id="export_sernr_til" required min="1" max="999" style="width: 100px;">
+                </div>
+                <p class="export-info" id="exportInfo" style="display: none;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeExportDialog()">Avbryt</button>
+                <button type="submit" class="btn btn-primary">Eksporter</button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
 
 <style>
 .primus-main-page .card-header {
@@ -291,12 +344,80 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     min-width: 120px;
     text-align: center;
 }
+
+/* Export Dialog Modal */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-content {
+    background-color: #fff;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #dbe3ef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+.modal-header .close {
+    font-size: 28px;
+    font-weight: bold;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+}
+.modal-header .close:hover {
+    color: #333;
+}
+.modal-body {
+    padding: 20px;
+}
+.modal-body .form-group {
+    margin-bottom: 16px;
+}
+.modal-body .form-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+.modal-body .export-info {
+    margin-top: 16px;
+    padding: 12px;
+    background: #e8f4ff;
+    border: 1px solid #3585fe;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #dbe3ef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
 </style>
 
 <script>
 (function(){
     var baseUrl = <?= $baseUrlJs ?>;
-    
+
     // Dobbeltklikk på eksisterende foto -> H1 modus (kandidatpanel ikke-klikkbart)
     document.querySelectorAll('.row-clickable').forEach(function (row) {
         row.addEventListener('dblclick', function () {
@@ -312,7 +433,172 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             window.location.href = 'primus_detalj.php?Foto_ID=' + fotoId;
         });
     });
+
+    <?php if ($isAdmin): ?>
+    // Admin: Toggle Transferred checkbox via AJAX
+    document.querySelectorAll('.transferred-checkbox').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function (e) {
+            e.stopPropagation(); // Prevent row double-click
+
+            var fotoId = this.dataset.fotoId;
+            var checkbox = this;
+
+            fetch(baseUrl + '/modules/primus/api/toggle_transferred.php', {
+                method: 'POST',
+                headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                body: 'foto_id=' + fotoId
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    checkbox.checked = data.transferred;
+                } else {
+                    // Revert on error
+                    checkbox.checked = !checkbox.checked;
+                    alert('Kunne ikke oppdatere status: ' + (data.error || 'Ukjent feil'));
+                }
+            })
+            .catch(function(err) {
+                // Revert on error
+                checkbox.checked = !checkbox.checked;
+                alert('Feil ved oppdatering');
+            });
+        });
+    });
+
+    // Prevent checkbox cell from triggering row double-click
+    document.querySelectorAll('.transferred-cell').forEach(function(cell) {
+        cell.addEventListener('dblclick', function(e) {
+            e.stopPropagation();
+        });
+    });
+    <?php endif; ?>
 })();
+
+<?php if ($isAdmin): ?>
+// Export dialog functions
+function showExportDialog() {
+    document.getElementById('exportDialog').style.display = 'flex';
+    document.getElementById('export_sernr_fra').focus();
+}
+
+function closeExportDialog() {
+    document.getElementById('exportDialog').style.display = 'none';
+    document.getElementById('exportForm').reset();
+    document.getElementById('exportInfo').style.display = 'none';
+}
+
+// Auto-set høy = lav + 1 when lav is entered
+document.getElementById('export_sernr_fra').addEventListener('input', function() {
+    var lavVerdi = parseInt(this.value);
+    if (!isNaN(lavVerdi)) {
+        document.getElementById('export_sernr_til').value = lavVerdi + 1;
+    }
+});
+
+// Calculate and show record count estimate
+function validateSerNrRange() {
+    var lavVerdi = parseInt(document.getElementById('export_sernr_fra').value);
+    var hoeyVerdi = parseInt(document.getElementById('export_sernr_til').value);
+    var infoDiv = document.getElementById('exportInfo');
+
+    if (!isNaN(lavVerdi) && !isNaN(hoeyVerdi)) {
+        // Check if høy < lav (error condition)
+        if (hoeyVerdi < lavVerdi) {
+            infoDiv.textContent = 'FEIL: SerNr til (' + hoeyVerdi + ') må være større eller lik SerNr fra (' + lavVerdi + ')';
+            infoDiv.style.display = 'block';
+            infoDiv.style.background = '#ffe8e8';
+            infoDiv.style.borderColor = '#ff4444';
+            infoDiv.style.color = '#721c24';
+            return false;
+        }
+
+        var antall = hoeyVerdi - lavVerdi + 1;
+        if (antall > 0) {
+            infoDiv.textContent = 'Område: ' + antall + ' poster (kun foto med Transferred = Nei vil eksporteres)';
+            infoDiv.style.display = 'block';
+            infoDiv.style.color = '#333';
+            if (antall > 1000) {
+                infoDiv.style.background = '#ffe8e8';
+                infoDiv.style.borderColor = '#ff4444';
+                infoDiv.textContent += ' - FEIL: Maks 1000 poster tillatt!';
+                return false;
+            } else {
+                infoDiv.style.background = '#e8f4ff';
+                infoDiv.style.borderColor = '#3585fe';
+                return true;
+            }
+        } else {
+            infoDiv.style.display = 'none';
+        }
+    } else {
+        infoDiv.style.display = 'none';
+    }
+    return true;
+}
+
+document.getElementById('export_sernr_til').addEventListener('input', validateSerNrRange);
+document.getElementById('export_sernr_fra').addEventListener('input', validateSerNrRange);
+
+// Close dialog on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeExportDialog();
+    }
+});
+
+// Close dialog when clicking outside
+document.getElementById('exportDialog').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeExportDialog();
+    }
+});
+
+// Validate before form submission
+document.getElementById('exportForm').addEventListener('submit', function(e) {
+    var lavVerdi = parseInt(document.getElementById('export_sernr_fra').value);
+    var hoeyVerdi = parseInt(document.getElementById('export_sernr_til').value);
+
+    // Check if values are valid numbers
+    if (isNaN(lavVerdi) || isNaN(hoeyVerdi)) {
+        e.preventDefault();
+        alert('Vennligst fyll ut både SerNr fra og SerNr til');
+        return false;
+    }
+
+    // Check SerNr range (1-999)
+    if (lavVerdi < 1 || lavVerdi > 999) {
+        e.preventDefault();
+        alert('FEIL: SerNr fra må være mellom 1 og 999');
+        return false;
+    }
+    if (hoeyVerdi < 1 || hoeyVerdi > 999) {
+        e.preventDefault();
+        alert('FEIL: SerNr til må være mellom 1 og 999');
+        return false;
+    }
+
+    // Check if høy < lav
+    if (hoeyVerdi < lavVerdi) {
+        e.preventDefault();
+        alert('FEIL: SerNr til (' + hoeyVerdi + ') må være større eller lik SerNr fra (' + lavVerdi + ')');
+        return false;
+    }
+
+    // Check if range exceeds 1000
+    var antall = hoeyVerdi - lavVerdi + 1;
+    if (antall > 1000) {
+        e.preventDefault();
+        alert('FEIL: Du kan ikke eksportere mer enn 1000 poster om gangen.\nValgt område: ' + antall + ' poster');
+        return false;
+    }
+
+    // If validation passes, redirect to confirmation page after download
+    setTimeout(function() {
+        window.location.href = 'export_confirm.php';
+    }, 2000);
+});
+<?php endif; ?>
 </script>
 
 <?php require_once __DIR__ . '/../../includes/layout_slutt.php'; ?>

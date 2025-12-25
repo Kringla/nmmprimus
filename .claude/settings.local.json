@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mysql:*)"
+      "Bash(mysql:*)",
+      "Bash(composer require:*)",
+      "Bash(where:*)"
     ]
   }
 }

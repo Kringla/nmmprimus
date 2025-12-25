@@ -339,3 +339,102 @@ if (!function_exists('primus_oppdater_foto')) {
         ]);
     }
 }
+
+/* --------------------------------------------------
+   EXPORT FUNCTIONALITY (Admin only)
+-------------------------------------------------- */
+
+if (!function_exists('primus_hent_foto_for_export')) {
+    /**
+     * Hent foto for eksport med alle nødvendige felt.
+     * Brukes av export_excel.php for admin-eksport.
+     */
+    function primus_hent_foto_for_export(string $serie, int $minSerNr, int $maxSerNr): array
+    {
+        $db = db();
+
+        $stmt = $db->prepare("
+            SELECT
+                Foto_ID,
+                Bilde_Fil AS BildeId,
+                URL_Bane,
+                MotivBeskr,
+                MotivType,
+                MotivEmne,
+                MotivKriteria,
+                Svarthvitt,
+                Aksesjon,
+                Samling,
+                Fotografi,
+                FotoFirma,
+                FotoTidFra AS Foto_Fra,
+                FotoTidTil AS Foto_Til,
+                FotoSted,
+                Prosess,
+                ReferNeg AS Referansenr,
+                ReferFArk AS FotografsRefNr,
+                Plassering,
+                Status,
+                Tilstand,
+                FriKopi,
+                UUID AS Fart_UUID,
+                Merknad
+            FROM nmmfoto
+            WHERE Transferred = b'0'
+              AND LEFT(Bilde_Fil, 8) = :serie
+              AND SerNr BETWEEN :min_sernr AND :max_sernr
+            ORDER BY SerNr
+        ");
+
+        $stmt->execute([
+            'serie'      => $serie,
+            'min_sernr'  => $minSerNr,
+            'max_sernr'  => $maxSerNr
+        ]);
+
+        return $stmt->fetchAll();
+    }
+}
+
+if (!function_exists('primus_marker_som_transferred')) {
+    /**
+     * Marker flere foto som overført (Transferred = True).
+     * Brukes etter eksport er bekreftet.
+     */
+    function primus_marker_som_transferred(array $fotoIds): bool
+    {
+        if (empty($fotoIds)) {
+            return true;
+        }
+
+        $db = db();
+
+        $placeholders = implode(',', array_fill(0, count($fotoIds), '?'));
+        $stmt = $db->prepare("
+            UPDATE nmmfoto
+            SET Transferred = b'1'
+            WHERE Foto_ID IN ($placeholders)
+        ");
+
+        return $stmt->execute($fotoIds);
+    }
+}
+
+if (!function_exists('primus_toggle_transferred')) {
+    /**
+     * Toggle Transferred-status for ett foto.
+     * Brukes av AJAX-endepunkt for admin-checkboks.
+     */
+    function primus_toggle_transferred(int $fotoId): bool
+    {
+        $db = db();
+
+        $stmt = $db->prepare("
+            UPDATE nmmfoto
+            SET Transferred = IF(Transferred = b'1', b'0', b'1')
+            WHERE Foto_ID = :foto_id
+        ");
+
+        return $stmt->execute(['foto_id' => $fotoId]);
+    }
+}

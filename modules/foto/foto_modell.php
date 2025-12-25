@@ -28,6 +28,16 @@ function foto_hent_en(PDO $db, int $fotoId): ?array
 function foto_lagre(PDO $db, array $data): int
 {
     // --------------------------------------------------
+    // Validering: SerNr må være mellom 1 og 999
+    // --------------------------------------------------
+    if (isset($data['SerNr'])) {
+        $serNr = (int)$data['SerNr'];
+        if ($serNr < 1 || $serNr > 999) {
+            throw new InvalidArgumentException('SerNr må være mellom 1 og 999');
+        }
+    }
+
+    // --------------------------------------------------
     // URL_Bane-generering (Access: UpdateURLFields)
     // --------------------------------------------------
     if (!empty($data['Bilde_Fil'])) {

@@ -224,6 +224,11 @@ if (is_post() && ($_POST['action'] ?? '') === 'kopier_foto') {
     if ($serie !== '') {
         $nesteSerNr = primus_hent_neste_sernr($serie);
 
+        // Validering: SerNr må være mellom 1 og 999
+        if ($nesteSerNr < 1 || $nesteSerNr > 999) {
+            die('FEIL: SerNr må være mellom 1 og 999. Neste tilgjengelige SerNr (' . $nesteSerNr . ') er utenfor tillatt område.');
+        }
+
         $stmt = $db->prepare("
             UPDATE nmmfoto
             SET SerNr = :sernr,
@@ -256,6 +261,14 @@ if (is_post()) {
 
     $data = $_POST;
     $data['Foto_ID'] = $fotoId;
+
+    // Validering: SerNr må være mellom 1 og 999
+    if (isset($data['SerNr'])) {
+        $serNr = (int)$data['SerNr'];
+        if ($serNr < 1 || $serNr > 999) {
+            die('FEIL: SerNr må være mellom 1 og 999');
+        }
+    }
 
     // KORRIGERT: Bilde_Fil = NMMSerie-SerNr
     if (!empty($data['NMMSerie']) && isset($data['SerNr'])) {
@@ -366,7 +379,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                     ?>
                     <div class="form-group" style="flex:0 0 7ch;">
                         <label for="SerNr">Serienr</label>
-                        <input type="number" name="SerNr" id="SerNr" value="<?= h((string)$sernr) ?>">
+                        <input type="number" name="SerNr" id="SerNr" value="<?= h((string)$sernr) ?>" min="1" max="999" required>
                     </div>
                     <div class="form-group" style="flex:0 0 15ch;">
                         <label for="Bilde_Fil">Bildefil</label>

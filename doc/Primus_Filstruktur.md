@@ -2,7 +2,7 @@
 
 Overordnet mappe: Git-repo for Primusdatabasen.
 
-**Sist oppdatert:** 2025-12-23
+**Sist oppdatert:** 2025-12-24
 
 Midlertidige filer vises ikke.
 Dokument-filer vises ikke.
@@ -48,11 +48,14 @@ nmmprimus/
  │   └─ primus/                # Primus hovedmodul
  │       ├─ primus_main.php         # Landingsside (liste over foto)
  │       ├─ primus_detalj.php       # Detaljvisning og redigering av foto
- │       ├─ primus_modell.php       # Datamodell for Primus (CRUD, kandidater)
+ │       ├─ primus_modell.php       # Datamodell for Primus (CRUD, kandidater, eksport)
+ │       ├─ export_excel.php        # Excel-eksport (admin only)
+ │       ├─ export_confirm.php      # Bekreftelsesside etter eksport
  │       └─ api/                    # API-endepunkter
  │           ├─ kandidat_data.php   # Hent kandidatdata (skip-info)
  │           ├─ neste_sernr.php     # Hent neste serienummer
- │           └─ sett_session.php    # Sett session-variabler
+ │           ├─ sett_session.php    # Sett session-variabler
+ │           └─ toggle_transferred.php  # Toggle Transferred-status (admin AJAX)
  │
  ├─ doc/                       # Dokumentasjon
  │   ├─ AccessObjects.pdf      # Access-databaseeksport (struktur)
@@ -100,6 +103,9 @@ nmmprimus/
   - Opprett nytt foto
   - Dobbeltklikk for redigering
   - Slett foto
+  - **Admin-funksjoner:**
+    - Toggle Transferred-status (checkbox i liste)
+    - Eksporter til Excel (modal dialog med SerNr-valg)
 
 - **primus_detalj.php**: Detaljvisning
   - 3 faner: Motiv, Bildehistorikk, Øvrige
@@ -108,6 +114,19 @@ nmmprimus/
   - "Legg til i Avbildet" via fartøy-søk
   - "Kopier foto"-funksjon
   - Auto-generering av URL_Bane
+
+- **export_excel.php**: Excel-eksport (CSV-format)
+  - Kun for admin
+  - Eksporterer foto med Transferred = False
+  - Filtrering på Serie og SerNr-område
+  - Maks 1000 poster per eksport
+  - 23 felter per rad (BildeId, URL_Bane, MotivBeskr, ...)
+  - Filnavn: ExportToPrimus_YYYYMMDD_HHMMSS.csv
+
+- **export_confirm.php**: Bekreftelsesside
+  - Viser eksportinformasjon (Serie, SerNr-område, antall)
+  - Bekreft → marker alle eksporterte foto som Transferred = True
+  - Avbryt → ingen endringer
 
 ### Foto-modul (`modules/foto/`)
 - **foto_modell.php**: Datamodell
@@ -142,3 +161,10 @@ nmmprimus/
 - Admin-meny på index.php
 - Komplett CRUD for brukere
 - Rollebasert tilgangskontroll
+
+### Admin Excel-eksport ✅
+- Toggle Transferred-status (checkbox, AJAX)
+- Excel-eksport med SerNr-filtrering
+- Modal dialog med auto-fylling (høy = lav + 1)
+- CSV-format med UTF-8 BOM
+- Bekreftelsesside med bulk-update
