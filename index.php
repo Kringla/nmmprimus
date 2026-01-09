@@ -32,12 +32,12 @@ require_once __DIR__ . '/includes/layout_start.php';
 
 <?php if ($isAdmin): ?>
     <!-- Admin-meny -->
-    <div class="card" style="max-width: 600px; margin: 30px auto;">
-        <div class="card-header" style="background: var(--blue-head);">
+    <div class="card max-w-600">
+        <div class="card-header card-header-blue">
             <strong>Administratormeny</strong>
         </div>
         <div class="card-body">
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="flex-col-gap">
                 <a href="<?= h($redirectTarget); ?>" class="btn btn-primary btn-lg">
                     Gå til Primus
                 </a>

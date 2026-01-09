@@ -20,6 +20,7 @@ $tillatte = [
     'primus_tab',      // Aktiv fane i detalj-visning
     'primus_h2',       // H2-modus (kandidatpanel aktivt)
     'primus_iCh',      // Hendelsesmodus
+    'primus_k_sok',    // Kandidat-søk (Søk i fartøynavn)
 ];
 
 $oppdatert = [];
@@ -46,6 +47,19 @@ foreach ($_POST as $key => $value) {
             $intVal = filter_var($value, FILTER_VALIDATE_INT);
             if ($intVal !== false) {
                 $_SESSION[$key] = $intVal;
+                $oppdatert[] = $key;
+            }
+            break;
+
+        case 'primus_k_sok':
+            // Kandidat-søk: lagres som en kort streng (trimmet, maks 200 tegn).
+            $s = trim((string)$value);
+            if ($s === '') {
+                // Tøm session-nøkkelen om tom streng
+                unset($_SESSION[$key]);
+                $oppdatert[] = $key;
+            } else {
+                $_SESSION[$key] = mb_substr($s, 0, 200);
                 $oppdatert[] = $key;
             }
             break;

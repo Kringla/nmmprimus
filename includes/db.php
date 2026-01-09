@@ -5,11 +5,28 @@ declare(strict_types=1);
  * db.php
  *
  * PDO-basert databaseforbindelse for NMMPrimus-prosjektet.
- * Alle konfigurasjonsverdier hentes utelukkende fra config/–filene.
+ * Støtter automatisk miljø-deteksjon (development/production).
  */
 
-require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../config/constants.php';
+// Initialiser error handling først
+require_once __DIR__ . '/error_handler.php';
+
+// Alltid bruk samme filnavn (config.php og constants.php)
+// Miljøspesifikke verdier settes i selve config-filene
+$configFile = __DIR__ . '/../config/config.php';
+$constantsFile = __DIR__ . '/../config/constants.php';
+
+// Sjekk at config-filer eksisterer
+if (!file_exists($configFile)) {
+    die("Error: Configuration file not found. Please copy config.example.php to config.php and configure your database settings.");
+}
+
+if (!file_exists($constantsFile)) {
+    die("Error: Constants file not found. Please copy constants.example.php to constants.php.");
+}
+
+require_once $configFile;
+require_once $constantsFile;
 
 /**
  * Returnerer en global PDO-instans.

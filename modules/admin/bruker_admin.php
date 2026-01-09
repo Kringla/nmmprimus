@@ -34,14 +34,18 @@ if (is_post() && ($_POST['action'] ?? '') === 'opprett') {
         $feilmelding = 'E-post og passord er påkrevd.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $feilmelding = 'Ugyldig e-postadresse.';
-    } elseif (strlen($passord) < 6) {
-        $feilmelding = 'Passordet må være minst 6 tegn.';
     } else {
-        try {
-            user_opprett($email, $passord, $rolle);
-            $melding = "Bruker '$email' opprettet.";
-        } catch (RuntimeException $e) {
-            $feilmelding = $e->getMessage();
+        // Valider passordstyrke
+        $passwordValidation = validate_password_strength($passord);
+        if (!$passwordValidation['valid']) {
+            $feilmelding = 'Passordet oppfyller ikke kravene:<br>' . implode('<br>', $passwordValidation['errors']);
+        } else {
+            try {
+                user_opprett($email, $passord, $rolle);
+                $melding = "Bruker '$email' opprettet.";
+            } catch (RuntimeException $e) {
+                $feilmelding = $e->getMessage();
+            }
         }
     }
 }
@@ -85,11 +89,15 @@ if (is_post() && ($_POST['action'] ?? '') === 'endre_passord') {
 
     if (!$userId || $nyttPassord === '') {
         $feilmelding = 'Ugyldig data.';
-    } elseif (strlen($nyttPassord) < 6) {
-        $feilmelding = 'Passordet må være minst 6 tegn.';
     } else {
-        user_endre_passord($userId, $nyttPassord);
-        $melding = "Passord endret.";
+        // Valider passordstyrke
+        $passwordValidation = validate_password_strength($nyttPassord);
+        if (!$passwordValidation['valid']) {
+            $feilmelding = 'Passordet oppfyller ikke kravene:<br>' . implode('<br>', $passwordValidation['errors']);
+        } else {
+            user_endre_passord($userId, $nyttPassord);
+            $melding = "Passord endret.";
+        }
     }
 }
 
@@ -137,8 +145,8 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 ?>
 
 <div class="container-fluid">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h1 style="margin:0;">Brukeradministrasjon</h1>
+    <div class="flex-row-space-between">
+        <h1 class="m-0">Brukeradministrasjon</h1>
         <a href="<?= h(BASE_URL); ?>" class="btn btn-secondary">Tilbake til meny</a>
     </div>
 
@@ -152,7 +160,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
     <!-- Opprett ny bruker -->
     <div class="card mb-4">
-        <div class="card-header" style="background: var(--blue-head);">
+        <div class="card-header card-header-blue">
             <strong>Opprett ny bruker</strong>
         </div>
         <div class="card-body">
@@ -169,8 +177,11 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="passord">Passord (min. 6 tegn)</label>
-                            <input type="password" name="passord" id="passord" class="form-control" minlength="6" required>
+                            <label for="passord">Passord</label>
+                            <input type="password" name="passord" id="passord" class="form-control" minlength="8" required>
+                            <small class="form-text text-muted">
+                                Min. 8 tegn, må inneholde: store/små bokstaver, tall og spesialtegn
+                            </small>
                         </div>
                     </div>
                     <div class="col-md-2">
@@ -182,7 +193,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-2" style="display:flex; align-items:end;">
+                    <div class="col-md-2 align-items-end">
                         <button type="submit" class="btn btn-success btn-block">Opprett</button>
                     </div>
                 </div>
@@ -192,7 +203,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
     <!-- Liste over brukere -->
     <div class="card">
-        <div class="card-header" style="background: var(--blue-head);">
+        <div class="card-header card-header-blue">
             <strong>Eksisterende brukere</strong>
         </div>
         <div class="card-body">
@@ -208,7 +219,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                             <th>Status</th>
                             <th>Opprettet</th>
                             <th>Sist brukt</th>
-                            <th style="text-align:right;">Handlinger</th>
+                            <th class="text-right">Handlinger</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -241,7 +252,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                                 </td>
                                 <td><?= h(date('d.m.Y', strtotime($bruker['created_at']))); ?></td>
                                 <td><?= $bruker['LastUsed'] ? h(date('d.m.Y H:i', strtotime($bruker['LastUsed']))) : '-'; ?></td>
-                                <td style="text-align:right; white-space:nowrap;">
+                                <td class="text-right nowrap">
                                     <!-- Rediger-knapp -->
                                     <button class="btn btn-sm btn-primary" onclick="visRedigerModal(<?= $uid; ?>, '<?= h($bruker['email']); ?>', '<?= h($bruker['role']); ?>')">
                                         Rediger
@@ -253,7 +264,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                                     </button>
 
                                     <!-- Toggle aktiv/inaktiv -->
-                                    <form method="post" style="display:inline;">
+                                    <form method="post" class="inline-form">
                                         <?= csrf_field(); ?>
                                         <input type="hidden" name="action" value="toggle_aktiv">
                                         <input type="hidden" name="user_id" value="<?= $uid; ?>">
@@ -264,7 +275,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
                                     <!-- Slett-knapp (ikke for egen bruker) -->
                                     <?php if (!$isCurrentUser): ?>
-                                        <form method="post" style="display:inline;" onsubmit="return confirm('Er du sikker på at du vil slette denne brukeren?');">
+                                        <form method="post" class="inline-form" onsubmit="return confirm('Er du sikker på at du vil slette denne brukeren?');">
                                             <?= csrf_field(); ?>
                                             <input type="hidden" name="action" value="slett">
                                             <input type="hidden" name="user_id" value="<?= $uid; ?>">
@@ -282,8 +293,8 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 </div>
 
 <!-- Modal: Rediger bruker -->
-<div id="redigerModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
-    <div style="position:relative; max-width:500px; margin:100px auto; background:#fff; padding:20px; border-radius:8px;">
+<div id="redigerModal" class="modal">
+    <div class="modal-content">
         <h3>Rediger bruker</h3>
         <form method="post">
             <?= csrf_field(); ?>
@@ -303,7 +314,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                 </select>
             </div>
 
-            <div style="display:flex; gap:10px; margin-top:20px;">
+            <div class="modal-actions">
                 <button type="submit" class="btn btn-primary">Lagre</button>
                 <button type="button" class="btn btn-secondary" onclick="skjulRedigerModal()">Avbryt</button>
             </div>
@@ -312,8 +323,8 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 </div>
 
 <!-- Modal: Endre passord -->
-<div id="passordModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
-    <div style="position:relative; max-width:500px; margin:100px auto; background:#fff; padding:20px; border-radius:8px;">
+<div id="passordModal" class="modal">
+    <div class="modal-content">
         <h3>Endre passord for <span id="passord_email"></span></h3>
         <form method="post">
             <?= csrf_field(); ?>
@@ -321,11 +332,14 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             <input type="hidden" name="user_id" id="passord_user_id">
 
             <div class="form-group">
-                <label for="nytt_passord">Nytt passord (min. 6 tegn)</label>
-                <input type="password" name="nytt_passord" id="nytt_passord" class="form-control" minlength="6" required>
+                <label for="nytt_passord">Nytt passord</label>
+                <input type="password" name="nytt_passord" id="nytt_passord" class="form-control" minlength="8" required>
+                <small class="form-text text-muted">
+                    Min. 8 tegn, må inneholde: store/små bokstaver, tall og spesialtegn
+                </small>
             </div>
 
-            <div style="display:flex; gap:10px; margin-top:20px;">
+            <div class="modal-actions">
                 <button type="submit" class="btn btn-warning">Endre passord</button>
                 <button type="button" class="btn btn-secondary" onclick="skjulPassordModal()">Avbryt</button>
             </div>

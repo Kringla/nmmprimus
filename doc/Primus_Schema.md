@@ -42,9 +42,9 @@ CREATE TABLE IF NOT EXISTS `nmmfoto` (
   `MotivKriteria` mediumtext DEFAULT NULL,
   `Avbildet` mediumtext DEFAULT NULL,
   `Hendelse` mediumtext DEFAULT NULL,
-  `Aksesjon` bit(1) DEFAULT NULL,
+  `Aksesjon` tinyint(1) DEFAULT NULL,
   `Samling` varchar(255) DEFAULT NULL,
-  `Fotografi` bit(1) DEFAULT NULL,
+  `Fotografi` tinyint(1) DEFAULT NULL,
   `Fotograf` varchar(255) DEFAULT NULL,
   `FotoFirma` varchar(255) DEFAULT NULL,
   `FotoTidFra` varchar(255) DEFAULT NULL,
@@ -57,11 +57,11 @@ CREATE TABLE IF NOT EXISTS `nmmfoto` (
   `Svarthvitt` varchar(255) DEFAULT 'Svart-hvit',
   `Status` varchar(255) DEFAULT 'Original',
   `Tilstand` varchar(255) DEFAULT 'God',
-  `FriKopi` bit(1) DEFAULT NULL,
+  `FriKopi` tinyint(1) DEFAULT NULL,
   `UUID` varchar(255) DEFAULT NULL,
-  `Transferred` bit(1) DEFAULT NULL,
+  `Transferred` tinyint(1) DEFAULT NULL,
   `Merknad` varchar(255) DEFAULT NULL,
-  `Flag` bit(1) DEFAULT NULL,
+  `Flag` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`Foto_ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=239 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

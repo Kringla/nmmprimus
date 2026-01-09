@@ -1,7 +1,7 @@
 # NMMPrimus – Brukerveiledning
 
 **Versjon:** 1.0  
-**Sist oppdatert:** Desember 2024
+**Sist oppdatert:** Desember 2025
 
 ---
 
@@ -23,11 +23,11 @@
 
 NMMPrimus er et webbasert system for registrering av fotografier som er scannet og ligger i Norsk Maritimt Museums fotoarkiv, og koble disse bildene med fartøy som ligger i KulturNav. Systemet muliggjør å:
 
-- Registrere nye fotografier med metadata
-- Knytte fotografier til fartøy i KulturNavs skipsregister
+- Registrere fotografier som er scannet med metadata
+- Knytte scannete fotografier til fartøy i KulturNavs skipsregister
 - Beskrive motiv, fotografer, tidsperioder og fysisk plassering
 - Eksportere rå-data for import i Primus
-- Søke i og bla gjennom eksisterende registreringer
+- Søke i og bla gjennom eksisterende registreringer gjort i NMMPrimus 
 
 Systemet kjører i nettleseren din – du trenger ikke installere noe programvare.
 

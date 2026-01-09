@@ -106,6 +106,12 @@ if ($h2) {
     if (empty($foto['Tilstand'])) {
         $foto['Tilstand'] = 'God';
     }
+
+    // For nye rader: sørg for at hendelsesmodus er 'Ingen' (1)
+    // og at referansefeltene er tomme (krav fra Access-paritet/brukerhistorie)
+    $_SESSION['primus_iCh'] = 1;
+    $foto['ReferNeg'] = null;
+    $foto['ReferFArk'] = null;
 }
 
 $svarthvittValg = ['Svart-hvit', 'Farge', 'Håndkolorert'];
@@ -113,9 +119,12 @@ if (!isset($foto['Svarthvitt']) || $foto['Svarthvitt'] === '' || $foto['Svarthvi
     $foto['Svarthvitt'] = $svarthvittValg[0];
 }
 
+$samlingValg = ['C2-Johnsen, Per-Erik', 'C2-Gjersøe, Georg', 'C2-'];
+
 // --------------------------------------------------
 // Hendelsesmodus (iCh) – session-paritet
 // --------------------------------------------------
+// NB: Hvis dette er en ny rad (H2-modus), tvinges hendelsesmodus til 1
 if (isset($_SESSION['primus_iCh'])) {
     $iCh = (int)$_SESSION['primus_iCh'];
 } else {
@@ -123,6 +132,18 @@ if (isset($_SESSION['primus_iCh'])) {
 }
 if ($iCh < 1 || $iCh > 6) {
     $iCh = 1;
+}
+
+// Dismiss UI-debug if requested
+if (isset($_GET['clear_foto_debug']) && (int)$_GET['clear_foto_debug'] === 1) {
+    unset($_SESSION['foto_debug_last']);
+    // Redirect to the same page without the query param
+    $base = 'primus_detalj.php?Foto_ID=' . (int)$fotoId;
+    $ks = trim((string)($_GET['k_sok'] ?? ''));
+    if ($ks !== '') {
+        $base .= '&k_sok=' . rawurlencode($ks);
+    }
+    redirect($base);
 }
 
 // --------------------------------------------------
@@ -139,60 +160,67 @@ if (isset($_SESSION['primus_tab'])) {
 // --------------------------------------------------
 // Kandidatsøk (venstre panel) – kun visning
 // --------------------------------------------------
-$kandidatSok = trim((string)($_GET['k_sok'] ?? ''));
+// Arv søket fra GET hvis oppgitt, ellers fra forrige sesjon (primus_k_sok)
+$kandidatSok = trim((string)($_GET['k_sok'] ?? ($_SESSION['primus_k_sok'] ?? '')));
 $kandidater = $h2 ? primus_hent_skip_liste($kandidatSok) : [];
 
 // --------------------------------------------------
-// "Legg til i 'Avbildet'" (additiv via fartoy_velg.php)
-// Returnerer ?add_avbildet_nmm_id=...
+// POST: "Legg til i 'Avbildet'" (additiv via fartoy_velg.php)
+// SIKKERHET: Konvertert fra GET til POST med CSRF-beskyttelse
 // --------------------------------------------------
-$addAvbId = filter_input(INPUT_GET, 'add_avbildet_nmm_id', FILTER_VALIDATE_INT);
-if ($addAvbId) {
-    $felt = primus_hent_kandidat_felter((int)$addAvbId);
-    if (!empty($felt['Avbildet']) && $felt['ok']) {
-        $ny = trim((string)$felt['Avbildet']);
-
-        $eks = (string)($foto['Avbildet'] ?? '');
-        $eksTrim = trim($eks);
-
-        $separator = ";\n";
-        $liste = [];
-
-        if ($eksTrim !== '') {
-            foreach (preg_split("/;\s*\n/", $eksTrim) ?: [] as $del) {
-                $del = trim((string)$del);
-                if ($del !== '') $liste[] = $del;
-            }
-        }
-
-        // Dedupe
-        $finnes = false;
-        foreach ($liste as $del) {
-            if (mb_strtolower($del) === mb_strtolower($ny)) {
-                $finnes = true;
-                break;
-            }
-        }
-        if (!$finnes) {
-            $liste[] = $ny;
-        }
-
-        $foto['Avbildet'] = implode($separator, $liste);
-
-        // Save the updated Avbildet to database
-        $stmt = $db->prepare("UPDATE nmmfoto SET Avbildet = :avbildet WHERE Foto_ID = :foto_id");
-        $stmt->execute([
-            'avbildet' => $foto['Avbildet'],
-            'foto_id' => $fotoId
-        ]);
+if (is_post() && isset($_POST['add_avbildet_nmm_id'])) {
+    if (!csrf_validate()) {
+        die('Ugyldig forespørsel (CSRF).');
     }
 
-    // Fjern query-param fra URL (men behold Foto_ID og evt k_sok)
-    $base = 'primus_detalj.php?Foto_ID=' . (int)$fotoId;
-    if ($kandidatSok !== '') {
-        $base .= '&k_sok=' . rawurlencode($kandidatSok);
+    $addAvbId = filter_var($_POST['add_avbildet_nmm_id'], FILTER_VALIDATE_INT);
+    if ($addAvbId) {
+        $felt = primus_hent_kandidat_felter((int)$addAvbId);
+        if (!empty($felt['Avbildet']) && $felt['ok']) {
+            $ny = trim((string)$felt['Avbildet']);
+
+            $eks = (string)($foto['Avbildet'] ?? '');
+            $eksTrim = trim($eks);
+
+            $separator = ";\n";
+            $liste = [];
+
+            if ($eksTrim !== '') {
+                foreach (preg_split("/;\s*\n/", $eksTrim) ?: [] as $del) {
+                    $del = trim((string)$del);
+                    if ($del !== '') $liste[] = $del;
+                }
+            }
+
+            // Dedupe
+            $finnes = false;
+            foreach ($liste as $del) {
+                if (mb_strtolower($del) === mb_strtolower($ny)) {
+                    $finnes = true;
+                    break;
+                }
+            }
+            if (!$finnes) {
+                $liste[] = $ny;
+            }
+
+            $foto['Avbildet'] = implode($separator, $liste);
+
+            // Save the updated Avbildet to database
+            $stmt = $db->prepare("UPDATE nmmfoto SET Avbildet = :avbildet WHERE Foto_ID = :foto_id");
+            $stmt->execute([
+                'avbildet' => $foto['Avbildet'],
+                'foto_id' => $fotoId
+            ]);
+        }
+
+        // Redirect til samme side uten POST-data
+        $base = 'primus_detalj.php?Foto_ID=' . (int)$fotoId;
+        if ($kandidatSok !== '') {
+            $base .= '&k_sok=' . rawurlencode($kandidatSok);
+        }
+        redirect($base);
     }
-    redirect($base);
 }
 
 // --------------------------------------------------
@@ -203,52 +231,94 @@ if (is_post() && ($_POST['action'] ?? '') === 'kopier_foto') {
         die('Ugyldig forespørsel (CSRF).');
     }
 
-    // Lagre eksisterende rad først
-    if ($db->inTransaction()) {
-        $db->commit();
-    }
+    try {
+        // FØRST: Lagre eventuelle endringer i eksisterende rad
+        $data = $_POST;
+        $data['Foto_ID'] = $fotoId;
 
-    // Hent serie fra eksisterende foto
-    $eksisterende = foto_hent_en($db, $fotoId);
-    $bildeFil = (string)($eksisterende['Bilde_Fil'] ?? '');
-    $serie = '';
-
-    if (strlen($bildeFil) >= 8) {
-        $serie = substr($bildeFil, 0, 8);
-    }
-
-    // Kopier foto (nullstiller Bildehistorikk og Øvrige)
-    $nyFotoId = foto_kopier($db, $fotoId);
-
-    // Oppdater SerNr og Bilde_Fil for den nye kopien
-    if ($serie !== '') {
-        $nesteSerNr = primus_hent_neste_sernr($serie);
-
-        // Validering: SerNr må være mellom 1 og 999
-        if ($nesteSerNr < 1 || $nesteSerNr > 999) {
-            die('FEIL: SerNr må være mellom 1 og 999. Neste tilgjengelige SerNr (' . $nesteSerNr . ') er utenfor tillatt område.');
+        // Checkbox-håndtering: hvis ikke i POST, sett til 0 (ikke krysset av)
+        $checkboxFelter = ['Aksesjon', 'Fotografi', 'FriKopi'];
+        foreach ($checkboxFelter as $chk) {
+            if (!isset($data[$chk])) {
+                $data[$chk] = 0;
+            }
         }
 
-        $stmt = $db->prepare("
-            UPDATE nmmfoto
-            SET SerNr = :sernr,
-                Bilde_Fil = :bilde_fil,
-                URL_Bane = :url_bane
-            WHERE Foto_ID = :foto_id
-        ");
-        $stmt->execute([
-            'sernr' => $nesteSerNr,
-            'bilde_fil' => $serie . '-' . $nesteSerNr,
-            'url_bane' => $serie . ' -001-999 Damp og Motor',
-            'foto_id' => $nyFotoId
-        ]);
+        // Validering: SerNr må være mellom 1 og 999
+        if (isset($data['SerNr'])) {
+            $serNr = (int)$data['SerNr'];
+            if ($serNr < 1 || $serNr > 999) {
+                die('FEIL: SerNr må være mellom 1 og 999');
+            }
+        }
+
+        // KORRIGERT: Bilde_Fil = NMMSerie-SerNr
+        if (!empty($data['NMMSerie']) && isset($data['SerNr'])) {
+            $data['Bilde_Fil'] = $data['NMMSerie'] . '-' . (int)$data['SerNr'];
+        }
+
+        // Lagre eksisterende rad
+        foto_lagre($db, $data);
+
+        // SÅ: Hent den lagrede raden som utgangspunkt for kopiering
+        $eksisterende = foto_hent_en($db, $fotoId);
+        $bildeFil = (string)($eksisterende['Bilde_Fil'] ?? '');
+        $serie = '';
+
+        if (strlen($bildeFil) >= 8) {
+            $serie = substr($bildeFil, 0, 8);
+        }
+
+        // Kopier foto (nullstiller Bildehistorikk og Øvrige)
+        $nyFotoId = foto_kopier($db, $fotoId);
+
+        // Oppdater SerNr og Bilde_Fil for den nye kopien
+        if ($serie !== '') {
+            $nesteSerNr = primus_hent_neste_sernr($serie);
+
+            // Validering: SerNr må være mellom 1 og 999
+            if ($nesteSerNr < 1 || $nesteSerNr > 999) {
+                die('FEIL: SerNr må være mellom 1 og 999. Neste tilgjengelige SerNr (' . $nesteSerNr . ') er utenfor tillatt område.');
+            }
+
+            $stmt = $db->prepare("
+                UPDATE nmmfoto
+                SET SerNr = :sernr,
+                    Bilde_Fil = :bilde_fil,
+                    URL_Bane = :url_bane
+                WHERE Foto_ID = :foto_id
+            ");
+            $stmt->execute([
+                'sernr' => $nesteSerNr,
+                'bilde_fil' => $serie . '-' . $nesteSerNr,
+                'url_bane' => $serie . ' -001-999 Damp og Motor',
+                'foto_id' => $nyFotoId
+            ]);
+        }
+
+        // H2-modus = 0 (venstre panel IKKE synlig/klikkbart)
+        $_SESSION['primus_h2'] = 0;
+        $_SESSION['primus_iCh'] = 1; // Hendelsesmodus = Ingen
+
+        redirect('primus_detalj.php?Foto_ID=' . $nyFotoId);
+
+    } catch (Throwable $e) {
+        // Ensure debug info available in session for UI panel
+        if (session_status() === PHP_SESSION_NONE) {
+            @session_start();
+        }
+        if (empty($_SESSION['foto_debug_last'])) {
+            $_SESSION['foto_debug_last'] = [
+                'when' => date('c'),
+                'context' => 'kopier_foto',
+                'message' => $e->getMessage(),
+                'foto_id' => $fotoId,
+            ];
+        }
+
+        // Redirect back to the same detail page so the debug panel can be displayed
+        redirect('primus_detalj.php?Foto_ID=' . $fotoId);
     }
-
-    // H2-modus = 0 (venstre panel IKKE synlig/klikkbart)
-    $_SESSION['primus_h2'] = 0;
-    $_SESSION['primus_iCh'] = 1; // Hendelsesmodus = Ingen
-
-    redirect('primus_detalj.php?Foto_ID=' . $nyFotoId);
 }
 
 // --------------------------------------------------
@@ -321,11 +391,31 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 ?>
 
 <div class="container-fluid">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h1 style="margin:0;">Primus – foto</h1>
-        <div style="display:flex; gap:12px;">
+
+    <?php if (!empty($_SESSION['foto_debug_last'])):
+        $d = $_SESSION['foto_debug_last']; ?>
+        <div class="alert alert-warning" role="alert" style="white-space:pre-wrap;font-family:monospace;">
+            <strong>UI Debug (foto_lagre)</strong>
+            <div style="margin-top:6px;">
+                <?= h('Tid: ' . ($d['when'] ?? '')) ?>
+                <br><?= h('Kontekst: ' . ($d['context'] ?? '')) ?>
+                <br><?= h('Melding: ' . ($d['message'] ?? '')) ?>
+                <br><?= h('Foto_ID: ' . ($d['foto_id'] ?? '')) ?>
+                <br><?= h('FriKopi (export): ' . var_export($d['FriKopi'] ?? null, true)) ?>
+                <br><?= h('FriKopi type: ' . ($d['FriKopi_type'] ?? '')) ?>
+                <br><?= h('FriKopi hex: ' . ($d['FriKopi_hex'] ?? '')) ?>
+            </div>
+            <div style="margin-top:8px;">
+                <a class="btn btn-sm btn-outline" href="?Foto_ID=<?= (int)$fotoId ?>&clear_foto_debug=1">Dismiss debug</a>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="flex-row-space-between">
+        <h1 class="m-0">Primus – foto</h1>
+        <div class="flex-row">
             <button type="submit" form="foto-form" class="btn btn-primary">Oppdater</button>
-            <form method="post" style="display:inline; margin:0;">
+            <form method="post" class="inline-form">
                 <?= csrf_field(); ?>
                 <input type="hidden" name="action" value="kopier_foto">
                 <button type="submit" class="btn btn-info" onclick="return confirm('Kopiere dette fotoet?');">Kopier foto</button>
@@ -344,20 +434,20 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                 <input type="hidden" name="NMM_ID" id="NMM_ID" value="<?= h((string)($foto['NMM_ID'] ?? '')) ?>">
 
                 <!-- TOPP: ValgtFartøy -->
-                <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:center; margin-bottom:16px;">
-                    <div class="form-group" style="width:420px; margin:0;">
-                        <label for="ValgtFartoy_vis" style="text-align:center; display:block;">Valgt fartøy</label>
-                        <input type="text" name="ValgtFartoy_vis" id="ValgtFartoy_vis" value="<?= h($valgtFartoyVis) ?>" readonly style="text-align:center; font-size:1.2em; font-weight:bold; font-family:Arial, sans-serif; width:100%;">
+                <div class="flex-wrap">
+                    <div class="form-group w-420px-form">
+                        <label for="ValgtFartoy_vis" class="text-center-label">Valgt fartøy</label>
+                        <input type="text" name="ValgtFartoy_vis" id="ValgtFartoy_vis" value="<?= h($valgtFartoyVis) ?>" readonly class="text-large-bold">
                     </div>
                 </div>
 
                 <hr>
 
                 <!-- Serie / fil -->
-                <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
-                    <div class="form-group" style="flex:0 0 15ch;">
+                <div class="flex-wrap-end">
+                    <div class="form-group w-15ch">
                         <label for="NMMSerie">NSM serie</label>
-                        <select name="NMMSerie" id="NMMSerie" style="width:100%;">
+                        <select name="NMMSerie" id="NMMSerie">
                             <?php
                             // Enkel serie-liste fra bildeserie-tabellen (scroll i select)
                             $serier = primus_hent_bildeserier();
@@ -377,15 +467,15 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                         $bildeFilVis = $nmmSerie . '-' . (string)$sernr;
                     }
                     ?>
-                    <div class="form-group" style="flex:0 0 7ch;">
+                    <div class="form-group w-7ch">
                         <label for="SerNr">Serienr</label>
                         <input type="number" name="SerNr" id="SerNr" value="<?= h((string)$sernr) ?>" min="1" max="999" required>
                     </div>
-                    <div class="form-group" style="flex:0 0 15ch;">
+                    <div class="form-group w-15ch">
                         <label for="Bilde_Fil">Bildefil</label>
                         <input type="text" name="Bilde_Fil" id="Bilde_Fil" value="<?= h($bildeFilVis) ?>" readonly>
                     </div>
-                    <div class="form-group" style="flex:1 1 auto; min-width:300px;">
+                    <div class="form-group flex-auto">
                         <label for="FTO_vis">Bilde kommentarer</label>
                         <input type="text" name="FTO_vis" id="FTO_vis" value="<?= h($ftoVis) ?>" readonly>
                     </div>
@@ -393,15 +483,15 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
                 <hr>
 
-                <div style="display:flex; gap:16px; align-items:flex-start;">
+                <div class="flex-row-start">
 
                     <!-- VENSTRE: kandidater (kun H2) -->
-                    <div style="width:420px; flex:0 0 auto;">
+                    <div class="flex-fixed-420">
                         <div class="card">
                             <div class="card-header">
                                 <strong>Kandidater</strong>
                                 <?php if (!$h2): ?>
-                                    <div style="font-size:12px; opacity:.7;">
+                                    <div class="text-hint">
                                         (Kun aktiv ved "Nytt foto")
                                     </div>
                                 <?php endif; ?>
@@ -409,21 +499,21 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                             <div class="card-body">
 
                                 <?php if ($h2): ?>
-                                    <div style="margin-bottom:10px;">
+                                    <div class="mb-3">
                                         <input type="hidden" id="k_sok_foto_id" value="<?= h((string)$fotoId) ?>">
                                         <div class="form-group">
-                                            <label for="k_sok">Søk (FNA)</label>
+                                            <label for="k_sok">Søk i fartøynavn</label>
                                             <input type="text" id="k_sok" value="<?= h($kandidatSok) ?>">
                                         </div>
                                         <button class="btn btn-secondary" type="button" id="btn-kandidat-sok">Søk</button>
                                     </div>
 
-                                    <div style="max-height:520px; overflow:auto; border:1px solid #ddd; padding:6px;">
-                                        <table class="table table-sm" style="margin:0;">
-                                            <thead style="position:sticky; top:0; background:#fff;">
+                                    <div class="table-scroll-520">
+                                        <table class="table table-sm">
+                                            <thead>
                                                 <tr>
                                                     <th>Fartøy</th>
-                                                    <th style="white-space:nowrap;">BYG</th>
+                                                    <th class="nowrap">BYG</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -433,16 +523,16 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                                                 $navn = trim((string)$k['FTY'] . ' ' . (string)$k['FNA']);
                                                 $byg = (string)($k['BYG'] ?? '');
                                                 ?>
-                                                <tr class="kandidat-rad" data-nmm-id="<?= h((string)$kid) ?>" style="cursor:pointer;">
+                                                <tr class="kandidat-rad" data-nmm-id="<?= h((string)$kid) ?>">
                                                     <td><?= h($navn) ?></td>
-                                                    <td style="white-space:nowrap;"><?= h($byg) ?></td>
+                                                    <td class="nowrap"><?= h($byg) ?></td>
                                                 </tr>
                                             <?php endforeach; ?>
                                             </tbody>
                                         </table>
                                     </div>
                                 <?php else: ?>
-                                    <div style="opacity:.7;">
+                                    <div class="inactive-hint">
                                         Kandidatvalg er deaktivert for eksisterende fartøy.
                                     </div>
                                 <?php endif; ?>
@@ -452,7 +542,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                     </div>
 
                     <!-- HØYRE: faner -->
-                    <div style="flex:1 1 auto; min-width:520px;">
+                    <div class="flex-min-520">
 
                         <div class="primus-tabs">
 
@@ -523,7 +613,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
                                 <?php
                                 area('Hendelse', 'Hendelse', (string)($foto['Hendelse'] ?? ''), 2);
-                                txt('Samling', 'Samling', (string)($foto['Samling'] ?? ''));
+                                combo('Samling', 'Samling', $samlingValg, (string)($foto['Samling'] ?? ''));
                                 chk('FriKopi', 'Fri kopi', (bool)($foto['FriKopi'] ?? false));
                                 txt('Fotograf', 'Fotograf', (string)($foto['Fotograf'] ?? ''));
                                 txt('FotoFirma', 'Fotofirma', (string)($foto['FotoFirma'] ?? ''));
@@ -604,8 +694,40 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             if (sok.value.trim() !== '') {
                 url += '&k_sok=' + encodeURIComponent(sok.value.trim());
             }
-            window.location.href = url;
+
+            // Persist søket i session før navigasjon
+            fetch(baseUrl + '/modules/primus/api/sett_session.php', {
+                method: 'POST',
+                headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                body: 'primus_k_sok=' + encodeURIComponent(sok.value.trim())
+            }).catch(function(){}).then(function(){ window.location.href = url; });
         });
+
+        // Prevent Enter key in the candidate search field from submitting the main form.
+        // This avoids accidental saves/redirects — Enter will perform the candidate search instead.
+        var sokInput = document.getElementById('k_sok');
+        if (sokInput) {
+            sokInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+
+                    // Trigger the same search behaviour as the button click,
+                    // but only if there are characters in the field.
+                    var val = sokInput.value.trim();
+                    if (val !== '') {
+                        var url = 'primus_detalj.php?Foto_ID=<?= (int)$fotoId ?>';
+                        url += '&k_sok=' + encodeURIComponent(val);
+
+                        fetch(baseUrl + '/modules/primus/api/sett_session.php', {
+                            method: 'POST',
+                            headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                            body: 'primus_k_sok=' + encodeURIComponent(val)
+                        }).catch(function(){}).then(function(){ window.location.href = url; });
+                    }
+                    // If empty, ignore the Enter key (do not submit form)
+                }
+            });
+        }
     }
 
     // ---------------- iCh → foto_state ----------------

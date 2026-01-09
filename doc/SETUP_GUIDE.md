@@ -1,41 +1,109 @@
-# NMMPrimus - Oppsettguide
+# NMMPrimus – Oppsettguide
 
-Denne guiden beskriver hvordan du setter opp prosjektet for lokal utvikling og produksjon.
+Veiledning for oppsett av NMMPrimus for lokal utvikling og produksjon.
 
 ---
 
-## 1. Systemkrav
+## Systemkrav
 
-- **PHP:** 8.1 eller nyere (8.3.x anbefalt)
-- **MySQL:** 8.0 eller nyere (8.3.28 på webhotellet)
-- **Webserver:** Apache med mod_rewrite (XAMPP anbefalt for lokal utvikling)
+- **PHP:** 8.1+ (8.3.x anbefalt)
+- **MySQL:** 8.0+ (8.3.28 i produksjon)
+- **Webserver:** Apache med mod_rewrite
+- **XAMPP:** Anbefalt for lokal utvikling
 - **Nettleser:** Chrome (primær), Edge (støttet)
 
 ---
 
-## 2. Lokal utvikling med XAMPP
+## Lokal utvikling (XAMPP)
 
-Er utført!
+### 1. Installer XAMPP
+
+Last ned og installer XAMPP med PHP 8.1+ og MySQL 8.0+.
+
+### 2. Klon repository
+
+```bash
+cd C:\xampp\htdocs
+git clone [repository-url] nmmprimus
+```
+
+### 3. Opprett database
+
+```sql
+CREATE DATABASE nmmprimus CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Importer schema fra `doc/Primus_Schema.md`.
+
+### 4. Konfigurer database
+
+Rediger `config/config.php`:
+
+```php
+return [
+    'host' => 'localhost',
+    'dbname' => 'nmmprimus',
+    'username' => 'root',
+    'password' => '',
+    'charset' => 'utf8mb4'
+];
+```
+
+### 5. Konfigurer BASE_URL
+
+Rediger `config/constants.php`:
+
+```php
+define('BASE_URL', 'http://localhost/nmmprimus/');
+```
+
+### 6. Test oppsettet
+
+Åpne i nettleser:
+```
+http://localhost/nmmprimus/login.php
+```
 
 ---
 
-## 3. Produksjonsoppsett
+## Produksjonsoppsett
 
-### 3.1 Filoverføring
+### 1. Overføring
 
-Utført!
+Last opp alle filer til webhotellet, unntatt:
+- `.git/`
+- `config/config.php` (bruk `configProd.php`)
+- `config/constants.php` (bruk `constantsProd.php`)
 
-### 3.2 Konfigurer for produksjon
+### 2. Database
 
-Utført!
+Opprett database via cPanel/phpMyAdmin og importer schema.
 
-### 3.3 Oppdater BASE_URL
+### 3. Konfigurer database
 
-Utført!
+Opprett `config/config.php` på server:
 
+```php
+<?php
+return [
+    'host' => 'din-database-server',
+    'dbname' => 'din_database_navn',
+    'username' => 'din_database_bruker',
+    'password' => 'ditt_passord',
+    'charset' => 'utf8mb4'
+];
 ```
 
-### 3.4 Sett riktige filtillatelser
+### 4. Konfigurer BASE_URL
+
+Opprett `config/constants.php` på server:
+
+```php
+<?php
+define('BASE_URL', 'https://ditt-domene.no/nmmprimus/');
+```
+
+### 5. Filtillatelser
 
 ```bash
 chmod 755 /path/to/nmmprimus
@@ -47,56 +115,62 @@ chmod 755 /path/to/nmmprimus/config
 
 ---
 
-## 4. Database
+## Database-tabeller
 
-### 4.1 Tabelloversikt
+Se [Primus_Schema.md](Primus_Schema.md) for komplett skjema.
 
-`Primus_Schema.md` gir schema!
+### Hovedtabeller
 
 | Tabell | Beskrivelse |
 |--------|-------------|
-| `nmmfoto` | Hovedtabell - fotoobjekter |
+| `nmmfoto` | Fotoobjekter (hovedtabell) |
 | `nmm_skip` | Fartøyregister |
-| `bildeserie` | Bildeserier (parameter) |
-| `country` | Nasjoner (parameter) |
-| `farttype` | Fartøytyper (parameter) |
-| `nmmxemne` | Motivemner (relasjon) |
-| `nmmxtype` | Motivtyper (relasjon) |
-| `nmmxou` | OU-klassifikasjoner (relasjon) |
-| `nmmxudk` | UDK-klassifikasjoner (relasjon) |
-| `nmmxhendelse` | Hendelser (relasjon) |
+| `bildeserie` | Bildeserier |
+| `country` | Nasjoner |
+| `farttype` | Fartøytyper |
+
+### Relasjonstabeller
+
+| Tabell | Beskrivelse |
+|--------|-------------|
+| `nmmxemne` | Motivemner |
+| `nmmxtype` | Motivtyper |
+| `nmmxou` | OU-klassifikasjoner |
+| `nmmxudk` | UDK-klassifikasjoner |
+| `nmmxhendelse` | Hendelser |
+
+### Brukertabeller
+
+| Tabell | Beskrivelse |
+|--------|-------------|
 | `user` | Brukere |
 | `user_preferences` | Brukerpreferanser |
-| `user_remember_tokens` | "Husk meg"-tokens |
-| `_zhendelsestyper` | Hendelsestyper (oppslagstabell) |
+| `user_remember_tokens` | "Remember me"-tokens |
 
-### 4.2 Viktige relasjoner
+### Viktige relasjoner
 
 ```
 nmmfoto.NMM_ID → nmm_skip.NMM_ID
-nmmxemne.NMM_ID → nmm_skip.NMM_ID
-nmmxtype.NMM_ID → nmm_skip.NMM_ID
-nmmxou.NMM_ID → nmm_skip.NMM_ID
-nmmxudk.NMM_ID → nmm_skip.NMM_ID
+nmmx*.NMM_ID → nmm_skip.NMM_ID
 user_preferences.user_id → user.user_id
 user_remember_tokens.user_id → user.user_id
 ```
 
 ---
 
-## 5. Feilsøking
-Er notert!
-### Problem: "Could not connect to database"
+## Feilsøking
 
-1. Sjekk at MySQL kjører i XAMPP
+### "Could not connect to database"
+
+1. Sjekk at MySQL kjører (XAMPP Control Panel)
 2. Verifiser at database `nmmprimus` eksisterer
-3. Sjekk kredentialene i `config/config.php`
+3. Sjekk kredentialer i `config/config.php`
 
-### Problem: "Class 'PDO' not found"
+### "Class 'PDO' not found"
 
 PHP mangler PDO-utvidelsen. I XAMPP er dette normalt aktivert.
 
-### Problem: Hvit side / 500 error
+### Hvit side / 500 error
 
 1. Aktiver feilvisning i PHP:
    ```php
@@ -105,26 +179,56 @@ PHP mangler PDO-utvidelsen. I XAMPP er dette normalt aktivert.
    ```
 2. Sjekk Apache error log: `C:\xampp\apache\logs\error.log`
 
-### Problem: CSS lastes ikke
+### CSS lastes ikke
 
 Sjekk at `BASE_URL` i `constants.php` er korrekt satt.
 
-### Problem: "Remember me" fungerer ikke
+### "Remember me" fungerer ikke
 
 1. Sjekk at `user_remember_tokens`-tabellen eksisterer
-2. Slett eventuelle utgåtte tokens:
+2. Slett utgåtte tokens:
    ```sql
    DELETE FROM user_remember_tokens WHERE expires_at < NOW();
    ```
 
+### Session-problemer
+
+1. Sjekk at session-katalogen er skrivbar
+2. Verifiser session-innstillinger i php.ini
+3. Test med hard refresh: CTRL+F5
+
 ---
 
-## 6. Sikkerhetshensyn
-Utført.
+## Sikkerhet
+
+### Passord
+- Alle passord lagres med `password_hash()` (bcrypt)
+- Aldri lagre passord i klartekst
+
+### CSRF-beskyttelse
+- Alle POST-operasjoner krever CSRF-token
+- Token genereres via `csrf_field()`
+- Valideres via `csrf_validate()`
+
+### SQL Injection
+- Kun prepared statements brukes
+- Ingen rå SQL-strenger
+
+### Session
+- HTTPOnly cookies
+- Secure cookies i produksjon (HTTPS)
+- "Remember me"-tokens kryptert
 
 ---
 
-## 7. Kontaktinformasjon
+## Kontakt
 
-Ved spørsmål eller problemer, kontakt:
+Ved spørsmål eller problemer:
 - E-post: webman@skipsweb.no
+
+---
+
+**Se også:**
+- [CLAUDE.md](../CLAUDE.md) – Teknisk referanse
+- [Primus_Funksjonalitet.md](Primus_Funksjonalitet.md) – Funksjonell beskrivelse
+- [Primus_Schema.md](Primus_Schema.md) – Database-skjema

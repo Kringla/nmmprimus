@@ -3,7 +3,8 @@
     "allow": [
       "Bash(mysql:*)",
       "Bash(composer require:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(findstr:*)"
     ]
   }
 }

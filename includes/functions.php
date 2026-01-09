@@ -100,3 +100,51 @@ function base_url_js(): string
     $baseUrl = defined('BASE_URL') ? BASE_URL : '';
     return json_encode($baseUrl, JSON_UNESCAPED_SLASHES);
 }
+
+/**
+ * Valider passordstyrke.
+ *
+ * Krav:
+ * - Minimum 8 tegn
+ * - Minst én stor bokstav
+ * - Minst én liten bokstav
+ * - Minst ett tall
+ * - Minst ett spesialtegn
+ *
+ * @param string $password Passord som skal valideres
+ * @return array ['valid' => bool, 'errors' => string[]]
+ */
+function validate_password_strength(string $password): array
+{
+    $errors = [];
+
+    // Minimum lengde
+    if (strlen($password) < 8) {
+        $errors[] = 'Passordet må være minst 8 tegn';
+    }
+
+    // Stor bokstav
+    if (!preg_match('/[A-Z]/', $password)) {
+        $errors[] = 'Passordet må inneholde minst én stor bokstav';
+    }
+
+    // Liten bokstav
+    if (!preg_match('/[a-z]/', $password)) {
+        $errors[] = 'Passordet må inneholde minst én liten bokstav';
+    }
+
+    // Tall
+    if (!preg_match('/[0-9]/', $password)) {
+        $errors[] = 'Passordet må inneholde minst ett tall';
+    }
+
+    // Spesialtegn
+    if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+        $errors[] = 'Passordet må inneholde minst ett spesialtegn (!@#$%^&* etc.)';
+    }
+
+    return [
+        'valid' => empty($errors),
+        'errors' => $errors
+    ];
+}

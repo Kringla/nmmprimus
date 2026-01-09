@@ -1,7 +1,60 @@
+# Environment & Configuration
+.env
+.env.*
+config/config.php
 config/configProd.php
 config/constantsProd.php
+
+# Sensitive files
+opprett_bruker.php
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# System
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+error.log
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Cache
+cache/
+*.cache
+
+# Documentation (large PDFs)
 doc/frmNMMFoto.pdf
-zzz/opprett_bruker.php
-zzz/ui_demo.php
-zzz/Skjermbilde 2025-12-23 073638.png
-zzz/CODE_REVIEW.md
+
+# Archive/Test files
+zzz/
+
+# User uploads (if any)
+uploads/
+files/
+
+# Vendor (if using Composer)
+vendor/
+
+# Node modules (if using npm)
+node_modules/
+
+# Build artifacts
+dist/
+build/

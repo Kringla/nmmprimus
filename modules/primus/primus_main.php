@@ -85,6 +85,8 @@ if (is_post() && ($_POST['action'] ?? '') === 'nytt_foto') {
 
     // H2: venstre kandidatpanel skal være klikkbart
     $_SESSION['primus_h2'] = 1;
+    // Nye rader skal starte i 'Ingen' hendelsesmodus
+    $_SESSION['primus_iCh'] = 1;
 
     redirect('primus_detalj.php?Foto_ID=' . $nyFotoId);
 }
@@ -119,12 +121,12 @@ $pageTitle = 'NMMPrimus – Landingsside';
 require_once __DIR__ . '/../../includes/layout_start.php';
 ?>
 
-<h1>NMMPrimus</h1>
+<h1>Foto hittil koblet til KulturNav</h1>
 
 <div class="primus-main-page">
 
-<?php ui_card_start('Serie'); ?>
-<div class="primus-serie-row">
+<!-- Serie toolbar (kompakt, uten card-wrapper) -->
+<div class="primus-serie-toolbar">
     <form method="post" class="form-inline">
         <?= csrf_field(); ?>
         <div class="form-group primus-serie-field">
@@ -158,15 +160,62 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     </button>
     <?php endif; ?>
 </div>
-<?php ui_card_end(); ?>
 
-<?php ui_card_start('Foto i valgt serie'); ?>
+<!-- Foto liste header med paging -->
+<div class="primus-foto-header">
+    <span class="primus-foto-title">Foto i valgt serie</span>
 
-<?php if ($totaltAntall > 0): ?>
-    <div style="margin-bottom: 12px; color: #666; font-size: 0.95em;">
-        Viser <?= ($offset + 1) ?> - <?= min($offset + $perSide, $totaltAntall) ?> av <?= $totaltAntall ?> foto
-    </div>
-<?php endif; ?>
+    <?php if ($totaltSider > 1): ?>
+        <div class="primus-paging-inline">
+            <!-- Første side -->
+            <?php if ($side > 1): ?>
+                <a href="?side=1" class="btn btn-secondary btn-sm" title="Gå til første side">«« Første</a>
+            <?php else: ?>
+                <span class="btn btn-secondary btn-sm btn-disabled">«« Første</span>
+            <?php endif; ?>
+
+            <!-- Forrige side -->
+            <?php if ($side > 1): ?>
+                <a href="?side=<?= $side - 1 ?>" class="btn btn-secondary btn-sm" title="Forrige side">« Forrige</a>
+            <?php else: ?>
+                <span class="btn btn-secondary btn-sm btn-disabled">« Forrige</span>
+            <?php endif; ?>
+
+            <!-- Side info og hopp til side -->
+            <span class="primus-paging-info">
+                Side <?= $side ?> av <?= $totaltSider ?>
+            </span>
+
+            <form method="get" class="primus-goto-page-form" onsubmit="return validateGotoPage();">
+                <label for="goto_side" class="sr-only">Gå til side</label>
+                <input
+                    type="number"
+                    name="side"
+                    id="goto_side"
+                    min="1"
+                    max="<?= $totaltSider ?>"
+                    placeholder="Gå til side..."
+                    class="primus-goto-input"
+                    title="Skriv sidenummer og trykk Enter"
+                >
+            </form>
+
+            <!-- Neste side -->
+            <?php if ($side < $totaltSider): ?>
+                <a href="?side=<?= $side + 1 ?>" class="btn btn-secondary btn-sm" title="Neste side">Neste »</a>
+            <?php else: ?>
+                <span class="btn btn-secondary btn-sm btn-disabled">Neste »</span>
+            <?php endif; ?>
+
+            <!-- Siste side -->
+            <?php if ($side < $totaltSider): ?>
+                <a href="?side=<?= $totaltSider ?>" class="btn btn-secondary btn-sm" title="Gå til siste side">Siste »»</a>
+            <?php else: ?>
+                <span class="btn btn-secondary btn-sm btn-disabled">Siste »»</span>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+</div>
 
 <?php if (empty($fotoListe)): ?>
 
@@ -177,9 +226,9 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     <div class="primus-main-scroll">
         <?php
         ui_table_start([
-            'Bildefil <span style="font-size:0.85em; font-weight:normal; opacity:0.7;">(Dbl-click for details)</span>',
+            'Bildefil <span class="text-small-muted">(Dbl-click for details)</span>',
             'Motivbeskrivelse',
-            $isAdmin ? 'Overført <span style="font-size:0.85em; font-weight:normal; opacity:0.7;">(klikk for å endre)</span>' : 'Overført',
+            $isAdmin ? 'Overført <span class="text-small-muted">(klikk for å endre)</span>' : 'Overført',
             '' // slett
         ]);
 
@@ -201,8 +250,8 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             echo '</td>';
 
             // Slett-knapp som POST-skjema med CSRF
-            echo '<td style="white-space:nowrap;">';
-            echo '<form method="post" style="display:inline;" onsubmit="return confirm(\'Slette dette bildet?\');">';
+            echo '<td class="nowrap">';
+            echo '<form method="post" class="inline-form" onsubmit="return confirm(\'Slette dette bildet?\');">';
             echo csrf_field();
             echo '<input type="hidden" name="action" value="slett_foto">';
             echo '<input type="hidden" name="foto_id" value="' . $fotoId . '">';
@@ -217,34 +266,12 @@ require_once __DIR__ . '/../../includes/layout_start.php';
         ?>
     </div>
 
-    <?php if ($totaltSider > 1): ?>
-        <div class="primus-paging">
-            <?php if ($side > 1): ?>
-                <a href="?side=<?= $side - 1 ?>" class="btn btn-secondary">« Forrige</a>
-            <?php else: ?>
-                <span class="btn btn-secondary" style="opacity:0.5; cursor:not-allowed;">« Forrige</span>
-            <?php endif; ?>
-
-            <span class="primus-paging-info">
-                Side <?= $side ?> av <?= $totaltSider ?>
-            </span>
-
-            <?php if ($side < $totaltSider): ?>
-                <a href="?side=<?= $side + 1 ?>" class="btn btn-secondary">Neste »</a>
-            <?php else: ?>
-                <span class="btn btn-secondary" style="opacity:0.5; cursor:not-allowed;">Neste »</span>
-            <?php endif; ?>
-        </div>
-    <?php endif; ?>
-
 <?php endif; ?>
-
-<?php ui_card_end(); ?>
 </div> <!-- /.primus-main-page -->
 
 <?php if ($isAdmin): ?>
 <!-- Export Dialog Modal -->
-<div id="exportDialog" class="modal" style="display: none;">
+<div id="exportDialog" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h2>Eksporter til Excel</h2>
@@ -257,13 +284,13 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                 <p><strong>Serie:</strong> <?= h($valgtSerie) ?></p>
                 <div class="form-group">
                     <label for="export_sernr_fra">SerNr fra (lav):</label>
-                    <input type="number" name="sernr_fra" id="export_sernr_fra" required min="1" max="999" style="width: 100px;">
+                    <input type="number" name="sernr_fra" id="export_sernr_fra" required min="1" max="999" class="w-100px">
                 </div>
                 <div class="form-group">
                     <label for="export_sernr_til">SerNr til (høy):</label>
-                    <input type="number" name="sernr_til" id="export_sernr_til" required min="1" max="999" style="width: 100px;">
+                    <input type="number" name="sernr_til" id="export_sernr_til" required min="1" max="999" class="w-100px">
                 </div>
-                <p class="export-info" id="exportInfo" style="display: none;"></p>
+                <p class="export-info" id="exportInfo"></p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeExportDialog()">Avbryt</button>
@@ -275,16 +302,24 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 <?php endif; ?>
 
 <style>
-.primus-main-page .card-header {
-    background: var(--blue-head);
+/* Redusert H1 størrelse */
+.primus-main-page h1 {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
 }
-.primus-serie-row {
+
+/* Serie toolbar (kompakt, cyan bakgrunn) */
+.primus-serie-toolbar {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 12px;
+    padding: 0.75rem 1rem;
+    background: var(--blue-head);
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
     flex-wrap: wrap;
 }
-.primus-serie-row .form-group {
+.primus-serie-toolbar .form-group {
     margin: 0;
 }
 .primus-serie-field {
@@ -295,6 +330,61 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 .primus-serie-field label {
     margin: 0;
     white-space: nowrap;
+    font-weight: 500;
+}
+
+/* Foto header med paging på samme linje */
+.primus-foto-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--blue-head);
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.primus-foto-title {
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+.primus-paging-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.primus-paging-inline .btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+}
+.primus-goto-page-form {
+    margin: 0;
+    display: inline-block;
+}
+.primus-goto-input {
+    width: 110px;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid #ced4da;
+    border-radius: 3px;
+    font-size: 0.875rem;
+    text-align: center;
+}
+.primus-goto-input:focus {
+    outline: none;
+    border-color: #3585fe;
+    box-shadow: 0 0 0 2px rgba(53, 133, 254, 0.2);
+}
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
 }
 /* PRIMUS MAIN - reduser radavstand og gi scrolling */
 .primus-main-scroll {
@@ -330,19 +420,10 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 .row-clickable:hover {
     background: #e8f4ff;
 }
-.primus-paging {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 16px;
-    margin-top: 16px;
-    padding: 12px;
-}
 .primus-paging-info {
-    font-size: 0.95em;
-    color: #666;
-    min-width: 120px;
-    text-align: center;
+    font-size: 0.875rem;
+    color: #333;
+    font-weight: 500;
 }
 
 /* Export Dialog Modal */
@@ -354,7 +435,8 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     width: 100%;
     height: 100%;
     background-color: rgba(0,0,0,0.5);
-    display: flex;
+    /* Hidden by default; shown by JS via showExportDialog() */
+    display: none;
     align-items: center;
     justify-content: center;
 }
@@ -415,6 +497,21 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 </style>
 
 <script>
+// Validering for "Gå til side" skjema
+function validateGotoPage() {
+    var input = document.getElementById('goto_side');
+    var side = parseInt(input.value);
+    var maxSider = parseInt(input.max);
+
+    if (!side || side < 1 || side > maxSider) {
+        alert('Vennligst skriv inn et gyldig sidenummer mellom 1 og ' + maxSider);
+        input.focus();
+        return false;
+    }
+
+    return true;
+}
+
 (function(){
     var baseUrl = <?= $baseUrlJs ?>;
 

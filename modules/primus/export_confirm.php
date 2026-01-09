@@ -109,7 +109,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     </div>
 
     <div class="export-confirm-buttons">
-        <form method="post" style="display:inline-block; margin-right: 10px;">
+        <form method="post" class="inline-form-with-margin">
             <?= csrf_field(); ?>
             <input type="hidden" name="action" value="confirm">
             <button type="submit" class="btn btn-success btn-lg">
@@ -117,7 +117,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             </button>
         </form>
 
-        <form method="post" style="display:inline-block;">
+        <form method="post" class="inline-form">
             <?= csrf_field(); ?>
             <input type="hidden" name="action" value="cancel">
             <button type="submit" class="btn btn-secondary btn-lg"

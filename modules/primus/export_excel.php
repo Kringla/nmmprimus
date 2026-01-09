@@ -15,6 +15,12 @@ require_once __DIR__ . '/primus_modell.php';
 // Only admins can export
 require_admin();
 
+// TEMP DEBUG: Log incoming requests to help diagnose why the export is triggered automatically.
+// Will record method, referer, remote IP and query string. Remove this when issue is resolved.
+$export_log_file = __DIR__ . '/../../logs/export_debug.log';
+$export_entry = date('c') . " " . ($_SERVER['REQUEST_METHOD'] ?? '') . " referer=" . (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '') . " remote=" . ($_SERVER['REMOTE_ADDR'] ?? '') . " query=" . ($_SERVER['QUERY_STRING'] ?? '') . "\n";
+@file_put_contents($export_log_file, $export_entry, FILE_APPEND | LOCK_EX);
+
 if (!is_post()) {
     die('Ugyldig forespørsel');
 }

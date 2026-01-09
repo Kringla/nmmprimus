@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../config/constants.php';
 require_once __DIR__ . '/../primus/primus_modell.php';
 
 require_login();
@@ -12,7 +13,7 @@ $ret    = (string)($_GET['ret'] ?? '');
 $mode   = (string)($_GET['mode'] ?? '');
 
 if (!$fotoId || $ret === '') {
-    redirect('/nmmprimus/modules/primus/primus_main.php');
+    redirect(BASE_URL . '/modules/primus/primus_main.php');
 }
 
 $sok = trim((string)($_GET['sok'] ?? ''));
@@ -26,7 +27,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     <div class="card">
         <div class="card-body">
 
-            <form method="get" class="mb-3" style="display:flex; gap:12px; align-items:end;">
+            <form method="get" class="mb-3 flex-row-end">
                 <input type="hidden" name="Foto_ID" value="<?= h((string)$fotoId) ?>">
                 <input type="hidden" name="ret" value="<?= h($ret) ?>">
                 <?php if ($mode !== ''): ?>
@@ -39,7 +40,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                            id="sok"
                            name="sok"
                            value="<?= h($sok) ?>"
-                           style="max-width:40ch; width:100%;"
+                           class="max-w-40ch"
                            autofocus>
                 </div>
 
@@ -54,14 +55,10 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             <?php else: ?>
 
                 <!-- Scroll-container: maks 25 rader -->
-                <div style="
-                    max-height: 25em;
-                    overflow-y: auto;
-                    border: 1px solid #ddd;
-                ">
+                <div class="table-scroll-container">
 
-                    <table class="table table-hover table-sm" style="margin-bottom:0;">
-                        <thead style="position: sticky; top: 0; background: #fff; z-index: 1;">
+                    <table class="table table-hover table-sm table-sticky-header">
+                        <thead>
                         <tr>
                             <th>Type</th>
                             <th>Navn</th>
@@ -88,10 +85,6 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                                 // Relative path - prepend ../primus/
                                 $returnUrl = '../primus/' . $ret;
                             }
-
-                            $url = $returnUrl
-                                . (str_contains($returnUrl, '?') ? '&' : '?')
-                                . $param . '=' . rawurlencode($id);
                             ?>
                             <tr>
                                 <td><?= h($fty) ?></td>
@@ -99,9 +92,14 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                                 <td><?= h($byg) ?></td>
                                 <td><?= h($kal) ?></td>
                                 <td>
-                                    <a class="btn btn-success btn-sm" href="<?= h($url) ?>">
-                                        Velg
-                                    </a>
+                                    <!-- SIKKERHET: Bruk POST for state-endringer -->
+                                    <form method="post" action="<?= h($returnUrl) ?>" class="inline-form">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="<?= h($param) ?>" value="<?= h($id) ?>">
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            Velg
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

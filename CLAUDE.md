@@ -1,6 +1,6 @@
 # CLAUDE.md – NMMPrimus Referanse
 
-**Omfattende veiledning** for Claude-agenter som jobber med NMMPrimus.
+**Teknisk referansedokument** for Claude-agenter som jobber med NMMPrimus.
 
 **VIKTIG:** [AGENTS.md](AGENTS.md) har absolutt forrang ved konflikt.
 
@@ -8,21 +8,28 @@
 
 ## 1. Prosjektoversikt
 
-**NMMPrimus** er PHP/MySQL migrering av Access-basert fotoarkiv for maritime museumsbilder.
+**NMMPrimus** er en PHP/MySQL-basert webapplikasjon for forvaltning av maritim fotoarkiv. Systemet erstatter en Microsoft Access-løsning.
+
+**Formål:** Bygge tabellen `nmmfoto` ved å koble fartøydata fra `nmm_skip`, parametertabeller og manuell input.
 
 **Stack:**
 ```
-Backend:     PHP 8.1+ (strict_types)
-Database:    MySQL 8.0+ (PDO)
+Backend:     PHP 8.1+ (strict_types=1)
+Database:    MySQL 	8.0.44-cll-lve (PDO)
 Frontend:    HTML5, minimal CSS, vanilla JS
 Miljø:       XAMPP (dev), web hosting (prod)
 ```
 
 **Prinsipp:** Funksjonalitet og korrekthet > visuell modernisering
 
+**Scope:**
+- Prosjektet er **kun** `nmmprimus`
+- **Ingen** kode/mønstre fra andre repoer
+- Autoritative kilder: Dokumenter i `nmmprimus`, eksisterende kode
+
 ---
 
-## 2. Filstruktur (Kritiske filer)
+## 2. Filstruktur
 
 ```
 nmmprimus/
@@ -73,6 +80,8 @@ nmmprimus/
 ├── AGENTS.md                   # OPERATIVE CONTRACT
 └── CLAUDE.md                   # Dette dokumentet
 ```
+
+Se [doc/Primus_Filstruktur.md](doc/Primus_Filstruktur.md) for fullstendig oversikt.
 
 ---
 
@@ -141,6 +150,10 @@ require_admin();   // Sjekk admin-rolle
 | H1 | Rediger eksisterende | Skjult | `primus_h2 = 0` |
 | H2 | Opprett nytt | Synlig | `primus_h2 = 1` |
 
+**Access-mapping:**
+- H1: Dobbeltaklikk på rad i landingssiden → rediger eksisterende foto
+- H2: Klikk "Ny"-knapp i landingssiden → opprett nytt foto i serien
+
 ### Hendelsesmodus (iCh 1-6)
 
 | iCh | Beskrivelse | Foto-felt | Samling-felt |
@@ -152,34 +165,59 @@ require_admin();   // Sjekk admin-rolle
 | 5 | (reservert) | ❌ | ❌ |
 | 6 | Fullstendig | ✅ | ✅ |
 
-Lagret: `$_SESSION['primus_iCh']`
+**Lagret:** `$_SESSION['primus_iCh']`
 
-Felthvitlisting i `foto_lagre()` forhindrer uautorisert redigering.
+**Felthvitlisting:** `foto_lagre()` validerer hvilke felt som kan redigeres basert på iCh-modus.
 
 ---
 
-## 5. Database-skjema (Viktigste tabeller)
+## 5. Database-skjema
 
-### nmmfoto (Fotoobjekter)
-- `Foto_ID` (PK)
+Se [doc/Primus_Schema.md](doc/Primus_Schema.md) for komplett SQL-skjema.
+
+### nmmfoto (Fotoobjekter - hovedtabell)
+- `Foto_ID` (PK, auto_increment)
 - `NMM_ID` (FK til nmm_skip)
-- `SerNr` (1-999)
-- `Bilde_Fil` (format: "XXXXXXXX-NNN")
-- `URL_Bane` (auto-generert)
-- **Motiv:** MotivBeskr, MotivType, MotivEmne, MotivKriteria
-- **Foto:** Fotografi, Fotograf, FotoFirma, FotoTidFra/Til, FotoSted
-- **Samling:** Aksesjon, Samling
-- **Flagg:** Svarthvitt, FriKopi, Transferred
+- `SerNr` (smallint, 1-999)
+- `Bilde_Fil` (varchar(255), format: "XXXXXXXX-NNN")
+- `URL_Bane` (varchar(255), auto-generert)
+- **Motiv:** MotivBeskr, MotivBeskrTillegg, MotivType, MotivEmne, MotivKriteria, Avbildet, Hendelse
+- **Foto:** Fotografi (bit), Fotograf, FotoFirma, FotoTidFra, FotoTidTil, FotoSted
+- **Samling:** Aksesjon (bit), Samling
+- **Teknisk:** Prosess, ReferNeg, ReferFArk, Plassering, Svarthvitt, Status, Tilstand
+- **Flagg:** FriKopi (bit), Transferred (bit), Flag (bit)
+- **System:** UUID, Merknad
 
 ### nmm_skip (Fartøyregister)
 - `NMM_ID` (PK)
-- FTY, FNA, XNA, VID, VER, BNR
-- BYG, RGH, NAT
+- `FTY` (fartøytype)
+- `FNA` (fartøynavn)
+- `XNA` (tidligere navn)
+- `VID` (verft ID)
+- `VER` (verft navn)
+- `BNR` (byggenummer)
+- `BYG` (byggeår)
+- `RGH` (registerhavendehavn)
+- `NAT` (nasjonalitet)
+- `NID` (nasjons-ID, FK til country)
+
+### Relasjonstabeller (x-tabeller)
+- `nmmxemne` – Motivemner (NMM_ID → nmm_skip)
+- `nmmxtype` – Motivtyper (NMM_ID → nmm_skip)
+- `nmmxou` – OU-klassifikasjoner (NMM_ID → nmm_skip)
+- `nmmxudk` – UDK-klassifikasjoner (NMM_ID → nmm_skip)
+- `nmmxhendelse` – Hendelser (Foto_ID → nmmfoto)
+
+### Parametertabeller
+- `bildeserie` – Bildeserier (SerID, Serie)
+- `country` – Nasjoner (Nasjon_ID, Nasjon)
+- `farttype` – Fartøytyper (FTY, FartType)
+- `_zhendelsestyper` – Hendelsestyper (Kode, Hendelsestype)
 
 ### Brukertabeller
-- `user` – brukere (email, password, role)
-- `user_preferences` – siste serie
-- `user_remember_tokens` – "Remember me"
+- `user` – Brukere (user_id, email, password, role, IsActive)
+- `user_preferences` – Siste serie (user_id, last_serie)
+- `user_remember_tokens` – "Remember me"-tokens (token_id, user_id, selector, validator_hash, expires_at)
 
 ---
 
@@ -220,20 +258,97 @@ foto_opprett_ny($db, $bildeFil)
 
 ## 7. Access-til-web Mapping
 
+### Skjemaer
+
 | Access | Web | Fil |
 |--------|-----|-----|
 | frmNMMPrimusMain | Landingsside | primus_main.php |
 | frmNMMPrimus | Detaljvisning | primus_detalj.php |
 | frmNMMPrimusKand | Kandidatpanel | Venstre sidebar i detalj |
 | frmNMMSkipsValg | Fartøyvalg | fartoy_velg.php |
+
+### Logikk
+
+| Access | Web | Fil |
+|--------|-----|-----|
 | H1/H2 modus | Session-flagg | `$_SESSION['primus_h2']` |
 | iCh (1-6) | Hendelsesmodus | `$_SESSION['primus_iCh']` |
 | SummaryFields() | primus_hent_kandidat_felter() | primus_modell.php |
 | UpdateURLFields() | Auto i foto_lagre() | foto_modell.php |
 
+### Atferd
+
+| Access | Web |
+|--------|-----|
+| Standardverdier ved ny post | Session + database defaults |
+| Husk siste valg | user_preferences-tabell |
+| Umiddelbar respons | AJAX + session |
+| NotInList | (ikke implementert) |
+
 ---
 
-## 8. Vanlige oppgaver
+## 8. Funksjonsområder
+
+### Landingsside (primus_main.php)
+
+**Funksjoner:**
+- Velg bildeserie (combobox, husker siste valg)
+- Liste over foto i serien (20 per side)
+- Paging (forrige/neste)
+- Dobbeltaklikk → H1-modus (rediger)
+- Ny-knapp → H2-modus (opprett)
+- Slett foto
+- **Admin:** Toggle Transferred, eksport til Excel
+
+**Access-ekvivalent:** frmNMMPrimusMain
+
+### Detaljvisning (primus_detalj.php)
+
+**Faner:**
+- **Motiv** – MotivBeskr, MotivType, MotivEmne, etc.
+- **Bildehistorikk** – Fotograf, FotoFirma, FotoTid, FotoSted, Aksesjon, Samling
+- **Øvrige** – Prosess, Referanser, Plassering, Status
+
+**Venstre panel (kun H2-modus):**
+- Søk etter fartøy (min 3 tegn)
+- Velg fartøy → fyller felter automatisk
+
+**Hendelsesmodus (iCh):**
+- Styrer hvilke felt som er redigerbare
+- Visuell markering (grønn/rød ramme)
+- Huskes i session
+
+**Funksjoner:**
+- Lagre endringer (Oppdater-knapp)
+- Kopier foto (samme serie, nytt SerNr)
+- Endre SerNr (validering mot ledige numre)
+- Auto-generering av Bilde_Fil og URL_Bane
+
+**Access-ekvivalent:** frmNMMPrimus + frmNMMPrimusKand subform
+
+### Fartøyvalg (fartoy_velg.php)
+
+**Funksjoner:**
+- Søk på fartøynavn (FNA)
+- Liste med 25 rader (scrollbar)
+- Velg fartøy → returner til detalj
+
+**Access-ekvivalent:** frmNMMSkipsValg
+
+### Admin (bruker_admin.php)
+
+**Funksjoner:**
+- Opprett brukere (admin/user)
+- Rediger brukere (e-post, rolle)
+- Endre passord
+- Aktivere/deaktivere brukere
+- Slette brukere
+
+**Kun admin-rolle.**
+
+---
+
+## 9. Vanlige oppgaver
 
 ### Ny modul
 
@@ -294,7 +409,7 @@ echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE)
 
 ---
 
-## 9. Sjekkliste for ny kode
+## 10. Sjekkliste for ny kode
 
 - [ ] `declare(strict_types=1);` først
 - [ ] Prepared statements
@@ -311,21 +426,32 @@ echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE)
 
 ---
 
-## 10. Kjente problemer
+## 11. Kjente problemer
+
+**Se [ROADMAP.md](ROADMAP.md) for fullstendig liste og implementeringsplan.**
 
 ### Code Quality
-1. Duplisert `foto_hent_en()` i foto_modell.php og primus_modell.php
-2. Ubrukt `primus_oppdater_foto()` i primus_modell.php
+1. ~~Duplisert `foto_hent_en()`~~ ✅ Aldri duplisert - kun i foto_modell.php
+2. ~~Ubrukt `primus_oppdater_foto()`~~ ✅ Fjernet (Task 8)
 3. Unødvendige `function_exists()` wrapper med `require_once`
 4. Noe inline CSS i primus_main.php (bør flyttes til app.css)
 
+### Sikkerhet
+1. 🔴 **KRITISK:** Produksjons-credentials eksponert i configProd.php
+2. 🔴 **KRITISK:** CSRF-sårbarhet på GET-operasjoner (primus_detalj.php)
+3. 🔴 **KRITISK:** Hardkodede admin-credentials i opprett_bruker.php
+4. 🟠 Svake passordkrav (6 tegn minimum)
+5. 🟠 Ingen environment detection i db.php
+
 ### Mangler
 1. NotInList-håndterer (Access-funksjon)
-2. Kopier foto-knapp i UI (funksjon finnes)
+2. Automatiserte tester
+3. Error logging system
+4. API-autentisering standardisering
 
 ---
 
-## 11. Feilsøking
+## 12. Feilsøking
 
 ### Vanlige problemer
 
@@ -356,10 +482,10 @@ WHERE expires_at > NOW();
 
 ---
 
-## 12. Når du står fast
+## 13. Når du står fast
 
 1. Sjekk [AGENTS.md](AGENTS.md)
-2. Sjekk [doc/Primus_PI.md](doc/Primus_PI.md)
+2. Sjekk [doc/Primus_Funksjonalitet.md](doc/Primus_Funksjonalitet.md)
 3. Sjekk kodkommentarer
 4. **Stopp og spør** – aldri gjett
 
@@ -367,19 +493,21 @@ WHERE expires_at > NOW();
 
 ---
 
-## 13. Viktige dokumenter
+## 14. Viktige dokumenter
 
 | Fil | Formål |
 |-----|--------|
-| [AGENTS.md](AGENTS.md) | Operative contract (HØYESTE AUTORITET) |
-| [CLAUDE.md](CLAUDE.md) | Dette dokumentet |
-| [doc/Primus_PI.md](doc/Primus_PI.md) | Hva systemet skal gjøre |
-| [doc/Primus_Schema.md](doc/Primus_Schema.md) | Database-skjema |
-| [doc/Primus_Filstruktur.md](doc/Primus_Filstruktur.md) | Filstruktur |
-| [doc/CODE_REVIEW_2.md](doc/CODE_REVIEW_2.md) | Kjente problemer |
+| [AGENTS.md](AGENTS.md) | Operativt kontrakt (HØYESTE AUTORITET) |
+| [CLAUDE.md](CLAUDE.md) | Dette dokumentet (teknisk referanse) |
+| [ROADMAP.md](ROADMAP.md) | Planlagte forbedringer og teknisk gjeld |
+| [README.md](README.md) | Prosjektoversikt |
+| [doc/Primus_Funksjonalitet.md](doc/Primus_Funksjonalitet.md) | Funksjonell beskrivelse |
+| [doc/Primus_Schema.md](doc/Primus_Schema.md) | Database-skjema (SQL) |
+| [doc/Primus_Filstruktur.md](doc/Primus_Filstruktur.md) | Filstruktur (detaljert) |
+| [doc/SETUP_GUIDE.md](doc/SETUP_GUIDE.md) | Installasjons- og oppsettguide |
 
 ---
 
-**Versjon:** 1.0
-**Opprettet:** 2025-12-24
+**Versjon:** 2.0
+**Sist oppdatert:** 2026-01-03
 **Forfatter:** Claude Code

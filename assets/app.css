@@ -305,3 +305,294 @@ select[data-foto-state="inaktiv"] {
     border: none;
     border-top: 1px solid #e5e7eb;
 }
+
+/* =================================================
+   Layout utilities
+   ================================================= */
+.flex-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.flex-row-space-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.flex-row-end {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.flex-row-start {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.flex-wrap {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.flex-wrap-end {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.inline-form {
+    display: inline-block;
+    margin: 0;
+}
+
+.inline-form-with-margin {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+/* =================================================
+   Width utilities
+   ================================================= */
+.w-100px {
+    width: 100px;
+}
+
+.w-7ch {
+    flex: 0 0 7ch;
+}
+
+.w-15ch {
+    flex: 0 0 15ch;
+    width: 100%;
+}
+
+.w-420px {
+    width: 420px;
+}
+
+.w-420px-form {
+    width: 420px;
+    margin: 0;
+}
+
+.flex-auto {
+    flex: 1 1 auto;
+    min-width: 300px;
+}
+
+.flex-fixed-420 {
+    width: 420px;
+    flex: 0 0 auto;
+}
+
+.flex-min-520 {
+    flex: 1 1 auto;
+    min-width: 520px;
+}
+
+.max-w-600 {
+    max-width: 600px;
+    margin: 30px auto;
+}
+
+.max-w-40ch {
+    max-width: 40ch;
+    width: 100%;
+}
+
+/* =================================================
+   Text utilities
+   ================================================= */
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-center-label {
+    text-align: center;
+    display: block;
+}
+
+.text-large-bold {
+    text-align: center;
+    font-size: 1.2em;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    width: 100%;
+}
+
+.text-info {
+    margin-bottom: 12px;
+    color: #666;
+    font-size: 0.95em;
+}
+
+.text-small-muted {
+    font-size: 0.85em;
+    font-weight: normal;
+    opacity: 0.7;
+}
+
+.text-hint {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+.m-0 {
+    margin: 0;
+}
+
+/* =================================================
+   Modal
+   ================================================= */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: relative;
+    max-width: 500px;
+    margin: 100px auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* =================================================
+   Tables
+   ================================================= */
+.table-scroll-container {
+    max-height: 25em;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+}
+
+.table-sticky-header {
+    margin-bottom: 0;
+}
+
+.table-sticky-header thead {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 1;
+}
+
+.table-scroll-520 {
+    max-height: 520px;
+    overflow: auto;
+    border: 1px solid #ddd;
+    padding: 6px;
+}
+
+.table-scroll-520 table {
+    margin: 0;
+}
+
+.table-scroll-520 thead {
+    position: sticky;
+    top: 0;
+    background: #fff;
+}
+
+.kandidat-rad {
+    cursor: pointer;
+}
+
+/* =================================================
+   Buttons
+   ================================================= */
+.btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-success {
+    background: #198754;
+    color: #fff;
+}
+
+.btn-success:hover {
+    background: #157347;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #000;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.btn-lg {
+    padding: 0.6rem 1.2rem;
+    font-size: 1.1rem;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+/* =================================================
+   Flexbox utilities for alignment
+   ================================================= */
+.align-items-end {
+    display: flex;
+    align-items: flex-end;
+}
+
+.flex-col-gap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* =================================================
+   Card header variants
+   ================================================= */
+.card-header-blue {
+    background: var(--blue-head);
+}
+
+/* =================================================
+   Misc utilities
+   ================================================= */
+.inactive-hint {
+    opacity: 0.7;
+}
