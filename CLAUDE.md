@@ -36,7 +36,7 @@ nmmprimus/
 ├── config/                     # IKKE ENDRE
 │   ├── config.php              # DB lokal
 │   ├── configProd.php          # DB prod
-│   ├── constants.php           # BASE_URL lokal
+│   ├── constants.php           # BASE_URL, FOTO_URL_PREFIX
 │   └── constantsProd.php       # BASE_URL prod
 │
 ├── includes/                   # Delt infrastruktur
@@ -73,6 +73,7 @@ nmmprimus/
 │       └── bruker_admin.php
 │
 ├── assets/app.css              # Eneste stylesheet
+├── manual/                     # Håndbok, manual
 ├── doc/                        # Dokumentasjon
 ├── login.php
 ├── logout.php
@@ -100,6 +101,20 @@ $row = $stmt->fetch();
 - Prepared statements med navngitte parametere
 - FETCH_ASSOC default
 - Ingen rå SQL
+
+### Konstanter
+
+```php
+// config/constants.php
+define('BASE_URL', '/nmmprimus');              // URL til applikasjonen
+define('FOTO_URL_PREFIX', 'M:\NMM\Bibliotek\Foto\NSM.TUSEN-SERIE\\');  // cURL fra Access
+```
+
+**FOTO_URL_PREFIX:**
+- Mapper til Access VBA-konstanten `cURL`
+- Brukes ved generering av `URL_Bane`-feltet
+- Format: `FOTO_URL_PREFIX . $serie . ' -001-999 Damp og Motor'`
+- Eksempel: `M:\NMM\Bibliotek\Foto\NSM.TUSEN-SERIE\NSM.2001 -001-999 Damp og Motor`
 
 ### Include-rekkefølge (KRITISK)
 

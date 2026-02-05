@@ -112,9 +112,11 @@ $headers = [
     'Referansenr',
     'FotografsRefNr',
     'Plassering',
+    'PlassFriTekst',
     'Status',
     'Tilstand',
     'FriKopi',
+    'Antall',
     'Fart_UUID',
     'Merknad'
 ];
@@ -142,9 +144,11 @@ foreach ($fotoListe as $row) {
         $row['Referansenr'] ?? '',
         $row['FotografsRefNr'] ?? '',
         $row['Plassering'] ?? '',
+        $row['PlassFriTekst'] ?? '',
         $row['Status'] ?? '',
         $row['Tilstand'] ?? '',
         bitToString($row['FriKopi']),
+        $row['Antall'] ?? '',
         $row['Fart_UUID'] ?? '',
         $row['Merknad'] ?? ''
     ];

@@ -93,6 +93,14 @@ function post_string(string $key): string
 }
 
 /**
+ * Hent BASE_URL for bruk i HTML/PHP.
+ */
+function base_url(): string
+{
+    return defined('BASE_URL') ? BASE_URL : '/';
+}
+
+/**
  * Hent BASE_URL som JSON-safe string for JavaScript.
  */
 function base_url_js(): string
@@ -147,4 +155,19 @@ function validate_password_strength(string $password): array
         'valid' => empty($errors),
         'errors' => $errors
     ];
+}
+
+/**
+ * Generate UUID v4 (Access GUID compatible)
+ * Format: 8-4-4-4-12 hexadecimal (e.g., 4D9A6929-3BE1-42E4-B5F4-A2782C75A054)
+ *
+ * @return string UUID v4 in uppercase format
+ */
+function generate_uuid_v4(): string
+{
+    $data = random_bytes(16);
+    $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // version 4
+    $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // variant bits
+
+    return strtoupper(vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4)));
 }

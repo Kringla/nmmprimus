@@ -108,10 +108,185 @@ function primus_hent_totalt_antall_foto(string $serie): int
     return (int)($row['total'] ?? 0);
 }
 
+/**
+ * Søk etter foto basert på skipsnavn (FNA fra nmm_skip)
+ *
+ * @param string $skipsnavn Skipsnavn å søke etter (minimum 3 tegn)
+ * @param string|null $serie Valgfri serie-filtrering (8 tegn) - null for alle serier
+ * @param int $limit Antall resultater per side
+ * @param int $offset Offset for paging
+ * @return array Liste med foto
+ */
+function primus_sok_foto_etter_skipsnavn(string $skipsnavn, ?string $serie, int $limit = 20, int $offset = 0): array
+{
+    $db = db();
+
+    $sql = "
+        SELECT f.Foto_ID, f.Bilde_Fil, f.MotivBeskr, f.Transferred
+        FROM nmmfoto f
+        INNER JOIN nmm_skip s ON f.NMM_ID = s.NMM_ID
+        WHERE s.FNA LIKE :skipsnavn
+    ";
+
+    $params = ['skipsnavn' => '%' . $skipsnavn . '%'];
+
+    if ($serie !== null && $serie !== '') {
+        $sql .= " AND LEFT(f.Bilde_Fil, 8) = :serie ";
+        $params['serie'] = $serie;
+    }
+
+    $sql .= "
+        ORDER BY f.Bilde_Fil DESC
+        LIMIT :limit OFFSET :offset
+    ";
+
+    $stmt = $db->prepare($sql);
+    $stmt->bindValue('skipsnavn', $params['skipsnavn'], PDO::PARAM_STR);
+    if (isset($params['serie'])) {
+        $stmt->bindValue('serie', $params['serie'], PDO::PARAM_STR);
+    }
+    $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue('offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchAll();
+}
+
+/**
+ * Tell totalt antall foto som matcher skipsnavn-søk
+ *
+ * @param string $skipsnavn Skipsnavn å søke etter
+ * @param string|null $serie Valgfri serie-filtrering - null for alle serier
+ * @return int Antall treff
+ */
+function primus_sok_foto_etter_skipsnavn_antall(string $skipsnavn, ?string $serie): int
+{
+    $db = db();
+
+    $sql = "
+        SELECT COUNT(*) as total
+        FROM nmmfoto f
+        INNER JOIN nmm_skip s ON f.NMM_ID = s.NMM_ID
+        WHERE s.FNA LIKE :skipsnavn
+    ";
+
+    $params = ['skipsnavn' => '%' . $skipsnavn . '%'];
+
+    if ($serie !== null && $serie !== '') {
+        $sql .= " AND LEFT(f.Bilde_Fil, 8) = :serie ";
+        $params['serie'] = $serie;
+    }
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+    $row = $stmt->fetch();
+
+    return (int)($row['total'] ?? 0);
+}
+
 /* --------------------------------------------------
    SERIENUMMER
 -------------------------------------------------- */
 
+/**
+ * Hent siste SerNr brukeren la inn i denne serien
+ * Returnerer 0 hvis ingen tidligere registrering finnes
+ */
+function primus_hent_siste_sernr_for_bruker(int $userId, string $serie): int
+{
+    $db = db();
+    $stmt = $db->prepare("
+        SELECT last_sernr
+        FROM user_serie_sernr
+        WHERE user_id = :user_id AND serie = :serie
+    ");
+    $stmt->execute(['user_id' => $userId, 'serie' => $serie]);
+    $row = $stmt->fetch();
+    return (int)($row['last_sernr'] ?? 0);
+}
+
+/**
+ * Lagre siste SerNr brukeren la inn i denne serien
+ */
+function primus_lagre_siste_sernr_for_bruker(int $userId, string $serie, int $serNr): void
+{
+    $db = db();
+    $stmt = $db->prepare("
+        INSERT INTO user_serie_sernr (user_id, serie, last_sernr)
+        VALUES (:user_id, :serie, :sernr)
+        ON DUPLICATE KEY UPDATE last_sernr = VALUES(last_sernr)
+    ");
+    $stmt->execute(['user_id' => $userId, 'serie' => $serie, 'sernr' => $serNr]);
+}
+
+/**
+ * Finn første ledige SerNr i serien etter et gitt startpunkt
+ * Sjekker databasen for eksisterende SerNr og finner første gap/hull
+ *
+ * @param string $serie 8-tegns serie-ID (f.eks. "NSM.9999")
+ * @param int $startFra SerNr å starte søket fra
+ * @return int Første ledige SerNr (1-999)
+ */
+function primus_finn_forste_ledige_sernr(string $serie, int $startFra): int
+{
+    $db = db();
+
+    // Hent alle eksisterende SerNr i serien, sortert
+    $stmt = $db->prepare("
+        SELECT SerNr
+        FROM nmmfoto
+        WHERE LEFT(Bilde_Fil, 8) = :serie
+        ORDER BY SerNr ASC
+    ");
+    $stmt->execute(['serie' => $serie]);
+    $eksisterende = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    // Konverter til set for rask oppslag
+    $eksisterendeSet = array_flip($eksisterende);
+
+    // Finn første ledige nummer fra $startFra
+    for ($sernr = $startFra; $sernr <= 999; $sernr++) {
+        if (!isset($eksisterendeSet[$sernr])) {
+            return $sernr;
+        }
+    }
+
+    // Hvis ingen ledige fra startFra til 999, søk fra 1 til startFra
+    for ($sernr = 1; $sernr < $startFra; $sernr++) {
+        if (!isset($eksisterendeSet[$sernr])) {
+            return $sernr;
+        }
+    }
+
+    // Hvis alt er fullt (1-999), returner 999 (vil gi feil senere)
+    return 999;
+}
+
+/**
+ * Hent neste SerNr for ny rad basert på brukerens siste innleggelse
+ *
+ * @param int $userId Bruker-ID
+ * @param string $serie 8-tegns serie-ID
+ * @return int Foreslått SerNr for ny rad
+ */
+function primus_hent_neste_sernr_for_bruker(int $userId, string $serie): int
+{
+    // Hent siste SerNr brukeren la inn i denne serien
+    $sisteBrukteSerNr = primus_hent_siste_sernr_for_bruker($userId, $serie);
+
+    // Hvis brukeren aldri har lagt inn noe i denne serien, start fra 1
+    if ($sisteBrukteSerNr === 0) {
+        return primus_finn_forste_ledige_sernr($serie, 1);
+    }
+
+    // Finn første ledige SerNr etter siste brukte
+    return primus_finn_forste_ledige_sernr($serie, $sisteBrukteSerNr + 1);
+}
+
+/**
+ * DEPRECATED: Gammel funksjon - bruker MAX(SerNr) i stedet for bruker-tracking
+ * Beholdt for bakoverkompatibilitet
+ */
 function primus_hent_neste_sernr(string $serie): int
 {
     $db = db();
@@ -247,7 +422,7 @@ function primus_hent_kandidat_felter(int $nmmId): array
             'FNA'           => '',
             'BYG'           => '',
             'VER'           => '',
-            'XNA'           => 0,
+            'XNA'           => '',
         ];
     }
 
@@ -255,7 +430,7 @@ function primus_hent_kandidat_felter(int $nmmId): array
     $fna = (string)($s['FNA'] ?? '');
     $byg = (string)($s['BYG'] ?? '');
     $ver = (string)($s['VER'] ?? '');
-    $xna = (int)($s['XNA'] ?? 0);
+    $xna = (string)($s['XNA'] ?? '');
 
     $valgtFartoy = trim($fty . ' ' . $fna);
     $avbildet = $valgtFartoy . ', ' . $byg;
@@ -316,9 +491,11 @@ function primus_hent_foto_for_export(string $serie, int $minSerNr, int $maxSerNr
             ReferNeg AS Referansenr,
             ReferFArk AS FotografsRefNr,
             Plassering,
+            PlassFriTekst,
             Status,
             Tilstand,
             FriKopi,
+            Antall,
             UUID AS Fart_UUID,
             Merknad
         FROM nmmfoto
@@ -374,4 +551,60 @@ function primus_toggle_transferred(int $fotoId): bool
     ");
 
     return $stmt->execute(['foto_id' => $fotoId]);
+}
+
+/**
+ * Finn sidenummer for et gitt foto i en serie.
+ * Brukes for å redirecte til riktig side etter lagring.
+ *
+ * @param int $fotoId Foto_ID som skal finnes
+ * @param int $perSide Antall rader per side (standard 20)
+ * @return int Sidenummer (1-basert)
+ */
+function primus_finn_side_for_foto(int $fotoId, int $perSide = 20): int
+{
+    $db = db();
+
+    // Hent Bilde_Fil for det gitte fotoet
+    $stmt = $db->prepare("
+        SELECT Bilde_Fil
+        FROM nmmfoto
+        WHERE Foto_ID = :foto_id
+    ");
+    $stmt->execute(['foto_id' => $fotoId]);
+    $foto = $stmt->fetch();
+
+    if (!$foto) {
+        return 1; // Hvis foto ikke finnes, returner side 1
+    }
+
+    $bildeFil = (string)$foto['Bilde_Fil'];
+    if (strlen($bildeFil) < 8) {
+        return 1; // Ugyldig Bilde_Fil
+    }
+
+    $serie = substr($bildeFil, 0, 8);
+
+    // Tell antall foto i serien som kommer ETTER dette fotoet
+    // (siden vi sorterer DESC på Bilde_Fil)
+    $stmt = $db->prepare("
+        SELECT COUNT(*) as antall
+        FROM nmmfoto
+        WHERE LEFT(Bilde_Fil, 8) = :serie
+          AND Bilde_Fil > :bilde_fil
+    ");
+    $stmt->execute([
+        'serie' => $serie,
+        'bilde_fil' => $bildeFil
+    ]);
+    $result = $stmt->fetch();
+    $antallEtter = (int)($result['antall'] ?? 0);
+
+    // Beregn sidenummer (1-basert)
+    // Posisjon i listen = antall foto etter + 1 (0-basert = antallEtter)
+    // Sidenummer = ceil((posisjon) / perSide)
+    $posisjon = $antallEtter + 1;
+    $side = (int)ceil($posisjon / $perSide);
+
+    return max(1, $side);
 }

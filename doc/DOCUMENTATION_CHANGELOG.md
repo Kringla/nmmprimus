@@ -4,6 +4,51 @@ Dette dokumentet beskriver oppryddingen av dokumentasjonen i NMMPrimus-prosjekte
 
 ---
 
+## Siste oppdatering: 2026-01-22
+
+### Lagt til søkefunksjonalitet for skipsnavn
+
+**Funksjonalitet:** Ny søkefunksjon i landingssiden (primus_main.php) for å søke etter foto basert på skipsnavn.
+
+**Egenskaper:**
+- Krever minimum 3 tegn for å søke
+- Valg mellom å søke i kun valgt serie eller alle serier
+- JavaScript-validering for min 3 tegn
+- Søkeresultat vises med antall treff
+- Paging fungerer med søkeresultater
+- "Nullstill"-knapp for å gå tilbake til normal visning
+
+**Implementasjon:**
+1. Nye funksjoner i [primus_modell.php](../modules/primus/primus_modell.php):
+   - `primus_sok_foto_etter_skipsnavn()` - Søk med JOIN til nmm_skip
+   - `primus_sok_foto_etter_skipsnavn_antall()` - Tell søketreff
+2. Oppdatert [primus_main.php](../modules/primus/primus_main.php):
+   - Søkelogikk med validering
+   - Søkefelt i toolbar med checkbox for "Alle serier"
+   - Paging med søkeparametere
+   - Søkeresultat-visning i header
+
+**Bruk:**
+1. Skriv inn minst 3 tegn av skipsnavn
+2. Velg "Alle serier" for å søke på tvers av serier, eller la være for å søke kun i valgt serie
+3. Klikk "Søk"
+4. Klikk "Nullstill" for å gå tilbake til normal visning
+
+---
+
+### Fikset URL_Bane-generering
+
+**Problem:** URL_Bane-feltet manglet cURL-prefikset (`M:\NMM\Bibliotek\Foto\NSM.TUSEN-SERIE\`) som finnes i Access-versjonen.
+
+**Løsning:**
+1. Lagt til `FOTO_URL_PREFIX`-konstant i [config/constants.php](../config/constants.php)
+2. Oppdatert [foto_modell.php:50](../modules/foto/foto_modell.php#L50) til å bruke konstanten
+3. Oppdatert [primus_detalj.php:367](../modules/primus/primus_detalj.php#L367) til å bruke konstanten
+
+**Resultat:** URL_Bane genereres nå som: `M:\NMM\Bibliotek\Foto\NSM.TUSEN-SERIE\NSM.2001 -001-999 Damp og Motor`
+
+---
+
 ## Mål
 
 1. Fjerne overlapping mellom dokumenter
@@ -31,7 +76,7 @@ Dette dokumentet beskriver oppryddingen av dokumentasjonen i NMMPrimus-prosjekte
 
 **Slettet:** Tekniske detaljer (flyttet til CLAUDE.md)
 
----
+
 
 ### 2. CLAUDE.md – Konsolidert teknisk referanse
 

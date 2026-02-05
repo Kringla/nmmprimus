@@ -8,11 +8,14 @@ require_once __DIR__ . '/../primus/primus_modell.php';
 
 require_login();
 
+// Håndter både eksisterende foto (Foto_ID) og nye foto (ny_rad)
 $fotoId = filter_input(INPUT_GET, 'Foto_ID', FILTER_VALIDATE_INT);
+$nyRad = isset($_GET['ny_rad']) && (int)$_GET['ny_rad'] === 1;
 $ret    = (string)($_GET['ret'] ?? '');
 $mode   = (string)($_GET['mode'] ?? '');
 
-if (!$fotoId || $ret === '') {
+// Minst én av $fotoId eller $nyRad må være satt
+if ((!$fotoId && !$nyRad) || $ret === '') {
     redirect(BASE_URL . '/modules/primus/primus_main.php');
 }
 
@@ -28,7 +31,11 @@ require_once __DIR__ . '/../../includes/layout_start.php';
         <div class="card-body">
 
             <form method="get" class="mb-3 flex-row-end">
-                <input type="hidden" name="Foto_ID" value="<?= h((string)$fotoId) ?>">
+                <?php if ($nyRad): ?>
+                    <input type="hidden" name="ny_rad" value="1">
+                <?php else: ?>
+                    <input type="hidden" name="Foto_ID" value="<?= h((string)$fotoId) ?>">
+                <?php endif; ?>
                 <input type="hidden" name="ret" value="<?= h($ret) ?>">
                 <?php if ($mode !== ''): ?>
                     <input type="hidden" name="mode" value="<?= h($mode) ?>">
@@ -96,6 +103,11 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                                     <form method="post" action="<?= h($returnUrl) ?>" class="inline-form">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="<?= h($param) ?>" value="<?= h($id) ?>">
+                                        <?php if ($nyRad): ?>
+                                            <input type="hidden" name="ny_rad" value="1">
+                                        <?php else: ?>
+                                            <input type="hidden" name="Foto_ID" value="<?= h((string)$fotoId) ?>">
+                                        <?php endif; ?>
                                         <button type="submit" class="btn btn-success btn-sm">
                                             Velg
                                         </button>

@@ -33,9 +33,9 @@ CREATE TABLE IF NOT EXISTS `nmmfoto` (
   `Foto_ID` int(11) NOT NULL AUTO_INCREMENT,
   `NMM_ID` int(11) DEFAULT NULL,
   `URL_Bane` varchar(255) DEFAULT NULL,
-  `SerNr` smallint(6) DEFAULT NULL,
-  `Bilde_Fil` varchar(255) DEFAULT NULL,
-  `MotivBeskr` varchar(255) DEFAULT NULL,
+  `SerNr` smallint(6) NOT NULL,
+  `Bilde_Fil` varchar(255) NOT NULL,
+  `MotivBeskr` varchar(255) NOT NULL,
   `MotivBeskrTillegg` varchar(255) DEFAULT NULL,
   `MotivType` mediumtext DEFAULT NULL,
   `MotivEmne` mediumtext DEFAULT NULL,
@@ -53,12 +53,14 @@ CREATE TABLE IF NOT EXISTS `nmmfoto` (
   `Prosess` varchar(255) DEFAULT 'Positivkopi;300',
   `ReferNeg` varchar(255) DEFAULT NULL,
   `ReferFArk` varchar(255) DEFAULT NULL,
-  `Plassering` varchar(255) DEFAULT '0286:NMM Oslo/Mus:NMM, Bygdøynesveien 37/Bib:Biblioteket - Fotoarkiv Damp- og Motorskip',
+  `Plassering` varchar(255) DEFAULT '0286/Mus/Bib',
+  `PlassFriTekst` varchar(255) DEFAULT 'Fotoarkiv: Damp- og Motorskip',
   `Svarthvitt` varchar(255) DEFAULT 'Svart-hvit',
   `Status` varchar(255) DEFAULT 'Original',
   `Tilstand` varchar(255) DEFAULT 'God',
   `FriKopi` tinyint(1) DEFAULT NULL,
-  `UUID` varchar(255) DEFAULT NULL,
+  `Antall` smallint(2) DEFAULT NULL,
+  `UUID` varchar(255) NOT NULL,
   `Transferred` tinyint(1) DEFAULT NULL,
   `Merknad` varchar(255) DEFAULT NULL,
   `Flag` tinyint(1) DEFAULT NULL,
@@ -158,6 +160,16 @@ CREATE TABLE IF NOT EXISTS `user_preferences` (
   PRIMARY KEY (`user_id`),
   CONSTRAINT `fk_user_preferences_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `user_serie_sernr` (
+  `user_id` int(11) NOT NULL,
+  `serie` varchar(8) NOT NULL COMMENT '8 tegn serie-ID (f.eks NSM.9999)',
+  `last_sernr` smallint(6) NOT NULL COMMENT 'Siste SerNr brukeren la inn i denne serien',
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`user_id`, `serie`),
+  CONSTRAINT `fk_user_serie_sernr_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+COMMENT='Tracker siste SerNr per bruker per serie for smart nummerforslag';
 
 CREATE TABLE IF NOT EXISTS `user_remember_tokens` (
   `token_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,

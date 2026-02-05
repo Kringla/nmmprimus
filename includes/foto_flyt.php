@@ -30,7 +30,7 @@ function foto_felt_tilstand(int $iCh): array
         'FotoTidTil' => false,
         'FotoSted'   => false,
         'FriKopi'    => true,
-        'Hendelse'   => false,
+        'Hendelse'   => true,    // ✅ Hendelse er ALLTID redigerbart (i $always)
     ];
 
     if (in_array($iCh, [3, 4, 6], true)) {

@@ -40,6 +40,7 @@ Denne mappen inneholder SQL-migrasjonsfiler for NMMPrimus-databasen.
 | Fil | Beskrivelse | Dato | Status |
 |-----|-------------|------|--------|
 | `001_change_bit_to_tinyint.sql` | Endre BIT(1) til TINYINT(1) for Aksesjon, Fotografi, FriKopi, Transferred, Flag | 2026-01-08 | Klar for kjøring |
+| `002_add_last_sernr_tracking.sql` | Legg til user_serie_sernr-tabell for smart SerNr-forslag per bruker per serie | 2026-01-14 | Klar for kjøring |
 
 ## Rollback
 

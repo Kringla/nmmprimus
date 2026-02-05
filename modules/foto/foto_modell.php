@@ -45,8 +45,9 @@ function foto_lagre(PDO $db, array $data): int
         $bildeFil = (string)$data['Bilde_Fil'];
         if (strlen($bildeFil) >= 8) {
             $serie = substr($bildeFil, 0, 8);
-            // Format: "[Serie] -001-999 Damp og Motor"
-            $data['URL_Bane'] = $serie . ' -001-999 Damp og Motor';
+            // Format: cURL + "[Serie] -001-999 Damp og Motor"
+            // Access: sURL = cURL & sNSMFull & " -001-999 Damp og Motor"
+            $data['URL_Bane'] = FOTO_URL_PREFIX . $serie . ' -001-999 Damp og Motor';
         }
     }
 
@@ -54,14 +55,23 @@ function foto_lagre(PDO $db, array $data): int
     // Server-side POST-sanitering (iCh-paritet)
     // --------------------------------------------------
 
-    $iCh = isset($_SESSION['primus_iCh']) ? (int)$_SESSION['primus_iCh'] : 1;
+    // VIKTIG: Bruk iCh fra POST hvis tilgjengelig (det brukeren faktisk valgte),
+    // ellers fra session. POST er source of truth når skjema submittes.
+    $iCh = isset($data['iCh']) ? (int)$data['iCh'] : (isset($_SESSION['primus_iCh']) ? (int)$_SESSION['primus_iCh'] : 1);
+
+    // Oppdater session til å matche POST-verdien
+    if (isset($data['iCh'])) {
+        $_SESSION['primus_iCh'] = $iCh;
+    }
 
     // Felter som ALLTID kan lagres
     $always = [
         'Foto_ID',
         'NMM_ID',
+        'UUID',          // System field, always allowed
         'SerNr',
         'Bilde_Fil',
+        'URL_Bane',
         'MotivBeskr',
         'MotivBeskrTillegg',
         'MotivType',
@@ -72,16 +82,19 @@ function foto_lagre(PDO $db, array $data): int
         'ReferNeg',
         'ReferFArk',
         'Plassering',
+        'PlassFriTekst',
         'Prosess',
         'Status',
         'Tilstand',
         'Merknad',
         'Svarthvitt',
-        'FriKopi'
+        'FriKopi',
+        'Antall'
     ];
 
     // Felter styrt av iCh
     $fotoFelter = [
+        'Fotografi',      // Checkbox: Om dette er et fotografi
         'Fotograf',
         'FotoFirma',
         'FotoTidFra',
@@ -90,6 +103,7 @@ function foto_lagre(PDO $db, array $data): int
     ];
 
     $samlingFelter = [
+        'Aksesjon',       // Checkbox: Om dette er aksesjonert
         'Samling'
     ];
 
@@ -150,11 +164,13 @@ function foto_lagre(PDO $db, array $data): int
         'ReferNeg',
         'ReferFArk',
         'Plassering',
+        'PlassFriTekst',
         'Prosess',
         'Status',
         'Tilstand',
         'Svarthvitt',
         'FriKopi',
+        'Antall',
 
         // Annet
         'Merknad',
@@ -183,6 +199,13 @@ function foto_lagre(PDO $db, array $data): int
     // Sørg for at SerNr er integer om angitt
     if (array_key_exists('SerNr', $filtered)) {
         $filtered['SerNr'] = (int)$filtered['SerNr'];
+    }
+
+    // Auto-generer UUID hvis tomt (for eksisterende foto som mangler UUID)
+    if (array_key_exists('UUID', $filtered)) {
+        if ($filtered['UUID'] === '' || $filtered['UUID'] === null || trim((string)$filtered['UUID']) === '') {
+            $filtered['UUID'] = generate_uuid_v4();
+        }
     }
 
     // Normaliser bit-felter (Aksesjon, Fotografi, FriKopi, Transferred, Flag)
@@ -405,9 +428,9 @@ function foto_kopier(PDO $db, int $fotoId): int
         throw new RuntimeException('Foto ikke funnet.');
     }
 
-    // Fjern primærnøkkel og UUID
+    // Fjern primærnøkkel og generer ny UUID
     unset($foto['Foto_ID']);
-    unset($foto['UUID']);
+    $foto['UUID'] = generate_uuid_v4(); // Generate NEW UUID for copy
 
     // Nullstill Bildehistorikk-felter til database defaults
     // (fanen "Bildehistorikk" i primus_detalj.php)

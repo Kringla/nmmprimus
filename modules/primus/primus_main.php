@@ -22,6 +22,16 @@ $isAdmin = ($user['role'] === 'admin');
 $db = db();
 
 // --------------------------------------------------
+// Rydd opp session hvis brukeren avbrøt ny rad
+// --------------------------------------------------
+if (isset($_GET['avbryt_ny']) && (int)$_GET['avbryt_ny'] === 1) {
+    unset($_SESSION['primus_ny_serie']);
+    unset($_SESSION['primus_ny_kandidat_sernr']);
+    $_SESSION['primus_h2'] = 0;
+    redirect('primus_main.php');
+}
+
+// --------------------------------------------------
 // Slett foto (Access-paritet) - NÅ VIA POST MED CSRF
 // --------------------------------------------------
 if (is_post() && ($_POST['action'] ?? '') === 'slett_foto') {
@@ -62,34 +72,33 @@ if (is_post() && ($_POST['action'] ?? '') === 'nytt_foto') {
     }
 
     $serie = (string)$valgtSerie;
-    $serNr = primus_hent_neste_sernr($serie);
+    $userId = (int)($_SESSION['user_id'] ?? 0);
+
+    // Beregn kandidatverdi for SerNr (IKKE lagre ennå)
+    $kandidatSerNr = primus_hent_neste_sernr_for_bruker($userId, $serie);
 
     // Validering: SerNr må være mellom 1 og 999
-    if ($serNr < 1 || $serNr > 999) {
-        die('FEIL: SerNr må være mellom 1 og 999. Neste tilgjengelige SerNr (' . $serNr . ') er utenfor tillatt område.');
+    if ($kandidatSerNr < 0 || $kandidatSerNr > 999) {
+        die('FEIL: Ingen ledige SerNr i serien (1-999).');
     }
-
-    // Bilde_Fil: serie + '-' + serienr (Access-paritet)
-    $bildeFil = $serie . '-' . (int)$serNr;
-
-    $stmt = $db->prepare("
-        INSERT INTO nmmfoto (SerNr, Bilde_Fil, Transferred)
-        VALUES (:sernr, :bilde_fil, b'0')
-    ");
-    $stmt->execute([
-        'sernr'     => $serNr,
-        'bilde_fil' => $bildeFil,
-    ]);
-
-    $nyFotoId = (int)$db->lastInsertId();
 
     // H2: venstre kandidatpanel skal være klikkbart
     $_SESSION['primus_h2'] = 1;
     // Nye rader skal starte i 'Ingen' hendelsesmodus
     $_SESSION['primus_iCh'] = 1;
+    // Lagre serie og kandidat SerNr i session
+    $_SESSION['primus_ny_serie'] = $serie;
+    $_SESSION['primus_ny_kandidat_sernr'] = $kandidatSerNr;
 
-    redirect('primus_detalj.php?Foto_ID=' . $nyFotoId);
+    redirect('primus_detalj.php?ny_rad=1');
 }
+
+// --------------------------------------------------
+// Søk etter skipsnavn
+// --------------------------------------------------
+$sokSkipsnavn = trim((string)($_GET['sok_skipsnavn'] ?? ''));
+$sokAllSerier = isset($_GET['sok_alle_serier']) && $_GET['sok_alle_serier'] === '1';
+$erSok = ($sokSkipsnavn !== '' && strlen($sokSkipsnavn) >= 3);
 
 // --------------------------------------------------
 // Paging
@@ -107,7 +116,13 @@ $serier    = primus_hent_bildeserier();
 $fotoListe = [];
 $totaltAntall = 0;
 
-if ($valgtSerie !== null && $valgtSerie !== '') {
+if ($erSok) {
+    // Søk etter skipsnavn
+    $sokSerie = $sokAllSerier ? null : (string)$valgtSerie;
+    $fotoListe = primus_sok_foto_etter_skipsnavn($sokSkipsnavn, $sokSerie, $perSide, $offset);
+    $totaltAntall = primus_sok_foto_etter_skipsnavn_antall($sokSkipsnavn, $sokSerie);
+} elseif ($valgtSerie !== null && $valgtSerie !== '') {
+    // Normal visning av serie
     $fotoListe = primus_hent_foto_for_serie((string)$valgtSerie, $perSide, $offset);
     $totaltAntall = primus_hent_totalt_antall_foto((string)$valgtSerie);
 }
@@ -127,56 +142,115 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
 <!-- Serie toolbar (kompakt, uten card-wrapper) -->
 <div class="primus-serie-toolbar">
-    <form method="post" class="form-inline">
-        <?= csrf_field(); ?>
-        <div class="form-group primus-serie-field">
-            <label for="serie">Serie</label>
-            <select name="serie" id="serie" onchange="this.form.submit()">
-                <?php foreach ($serier as $s): ?>
-                    <?php
-                    $serieVerdi = (string)($s['Serie'] ?? '');
-                    if ($serieVerdi === '') continue;
-                    $selected = ($serieVerdi === (string)$valgtSerie) ? 'selected' : '';
-                    ?>
-                    <option value="<?= h($serieVerdi); ?>" <?= $selected; ?>>
-                        <?= h($serieVerdi); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-    </form>
+    <!-- VENSTRE: Serie-velger -->
+    <div class="toolbar-left">
+        <form method="post" class="form-inline">
+            <?= csrf_field(); ?>
+            <div class="form-group primus-serie-field">
+                <label for="serie">Serie</label>
+                <select name="serie" id="serie" onchange="this.form.submit()">
+                    <?php foreach ($serier as $s): ?>
+                        <?php
+                        $serieVerdi = (string)($s['Serie'] ?? '');
+                        if ($serieVerdi === '') continue;
+                        $selected = ($serieVerdi === (string)$valgtSerie) ? 'selected' : '';
+                        ?>
+                        <option value="<?= h($serieVerdi); ?>" <?= $selected; ?>>
+                            <?= h($serieVerdi); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </form>
+    </div>
 
-    <form method="post" class="form-inline">
-        <?= csrf_field(); ?>
-        <input type="hidden" name="action" value="nytt_foto">
-        <button type="submit" class="btn btn-success">
-            Nytt foto i valgt serie
+    <!-- MIDTSTILT: Søk etter skipsnavn -->
+    <div class="toolbar-center">
+        <form method="get" class="form-inline primus-search-form" id="searchForm">
+            <div class="form-group primus-search-field">
+                <label for="sok_skipsnavn">Søk skipsnavn</label>
+                <input
+                    type="text"
+                    name="sok_skipsnavn"
+                    id="sok_skipsnavn"
+                    value="<?= h($sokSkipsnavn); ?>"
+                    placeholder="Min. 3 tegn..."
+                    class="primus-search-input"
+                    minlength="3"
+                >
+                <label class="primus-search-checkbox">
+                    <input
+                        type="checkbox"
+                        name="sok_alle_serier"
+                        id="sok_alle_serier"
+                        value="1"
+                        <?= $sokAllSerier ? 'checked' : ''; ?>
+                    >
+                    <span>Alle serier</span>
+                </label>
+                <button type="submit" class="btn btn-primary btn-sm">Søk</button>
+                <?php if ($erSok): ?>
+                    <a href="primus_main.php" class="btn btn-secondary btn-sm">Nullstill</a>
+                <?php endif; ?>
+            </div>
+        </form>
+    </div>
+
+    <!-- HØYRE: Handlingsknapper -->
+    <div class="toolbar-right">
+        <form method="post" class="form-inline">
+            <?= csrf_field(); ?>
+            <input type="hidden" name="action" value="nytt_foto">
+            <button type="submit" class="btn btn-success btn-sm">
+                Nytt foto i valgt serie
+            </button>
+        </form>
+
+        <?php if ($isAdmin): ?>
+        <button type="button" class="btn btn-primary btn-sm" onclick="showExportDialog()">
+            Eksporter til Excel
         </button>
-    </form>
+        <?php endif; ?>
 
-    <?php if ($isAdmin): ?>
-    <button type="button" class="btn btn-primary" onclick="showExportDialog()">
-        Eksporter til Excel
-    </button>
-    <?php endif; ?>
+        <a href="<?= base_url(); ?>manual/Brukermanual.pdf"
+           class="btn btn-info btn-sm"
+           download="NMMPrimus_Brukermanual.pdf"
+           title="Last ned brukermanual (PDF)">
+            📖 Brukermanual
+        </a>
+    </div>
 </div>
 
 <!-- Foto liste header med paging -->
 <div class="primus-foto-header">
-    <span class="primus-foto-title">Foto i valgt serie</span>
+    <?php if ($erSok): ?>
+        <span class="primus-foto-title">
+            Søkeresultat for "<?= h($sokSkipsnavn); ?>"
+            <?= $sokAllSerier ? '(alle serier)' : '(kun ' . h($valgtSerie) . ')'; ?>
+            - <?= $totaltAntall ?> treff
+        </span>
+    <?php else: ?>
+        <span class="primus-foto-title">Foto i valgt serie</span>
+    <?php endif; ?>
 
     <?php if ($totaltSider > 1): ?>
+        <?php
+        // Bygg paging URL med søkeparametere
+        $pagingBase = $erSok
+            ? '?sok_skipsnavn=' . urlencode($sokSkipsnavn) . ($sokAllSerier ? '&sok_alle_serier=1' : '') . '&side='
+            : '?side=';
+        ?>
         <div class="primus-paging-inline">
             <!-- Første side -->
             <?php if ($side > 1): ?>
-                <a href="?side=1" class="btn btn-secondary btn-sm" title="Gå til første side">«« Første</a>
+                <a href="<?= $pagingBase ?>1" class="btn btn-secondary btn-sm" title="Gå til første side">«« Første</a>
             <?php else: ?>
                 <span class="btn btn-secondary btn-sm btn-disabled">«« Første</span>
             <?php endif; ?>
 
             <!-- Forrige side -->
             <?php if ($side > 1): ?>
-                <a href="?side=<?= $side - 1 ?>" class="btn btn-secondary btn-sm" title="Forrige side">« Forrige</a>
+                <a href="<?= $pagingBase . ($side - 1) ?>" class="btn btn-secondary btn-sm" title="Forrige side">« Forrige</a>
             <?php else: ?>
                 <span class="btn btn-secondary btn-sm btn-disabled">« Forrige</span>
             <?php endif; ?>
@@ -187,6 +261,12 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             </span>
 
             <form method="get" class="primus-goto-page-form" onsubmit="return validateGotoPage();">
+                <?php if ($erSok): ?>
+                    <input type="hidden" name="sok_skipsnavn" value="<?= h($sokSkipsnavn); ?>">
+                    <?php if ($sokAllSerier): ?>
+                        <input type="hidden" name="sok_alle_serier" value="1">
+                    <?php endif; ?>
+                <?php endif; ?>
                 <label for="goto_side" class="sr-only">Gå til side</label>
                 <input
                     type="number"
@@ -202,14 +282,14 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
             <!-- Neste side -->
             <?php if ($side < $totaltSider): ?>
-                <a href="?side=<?= $side + 1 ?>" class="btn btn-secondary btn-sm" title="Neste side">Neste »</a>
+                <a href="<?= $pagingBase . ($side + 1) ?>" class="btn btn-secondary btn-sm" title="Neste side">Neste »</a>
             <?php else: ?>
                 <span class="btn btn-secondary btn-sm btn-disabled">Neste »</span>
             <?php endif; ?>
 
             <!-- Siste side -->
             <?php if ($side < $totaltSider): ?>
-                <a href="?side=<?= $totaltSider ?>" class="btn btn-secondary btn-sm" title="Gå til siste side">Siste »»</a>
+                <a href="<?= $pagingBase . $totaltSider ?>" class="btn btn-secondary btn-sm" title="Gå til siste side">Siste »»</a>
             <?php else: ?>
                 <span class="btn btn-secondary btn-sm btn-disabled">Siste »»</span>
             <?php endif; ?>
@@ -219,7 +299,12 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
 <?php if (empty($fotoListe)): ?>
 
-    <?php ui_empty('Ingen foto funnet for valgt serie.'); ?>
+    <?php
+    $emptyMsg = $erSok
+        ? 'Ingen foto funnet for søket "' . h($sokSkipsnavn) . '"'
+        : 'Ingen foto funnet for valgt serie.';
+    ui_empty($emptyMsg);
+    ?>
 
 <?php else: ?>
 
@@ -308,19 +393,27 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     margin-bottom: 0.75rem;
 }
 
-/* Serie toolbar (kompakt, cyan bakgrunn) */
+/* Serie toolbar - tre-kolonne layout (venstre, midten, høyre) */
 .primus-serie-toolbar {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 12px;
     padding: 0.75rem 1rem;
     background: var(--blue-head);
     border-radius: 4px;
     margin-bottom: 0.5rem;
-    flex-wrap: wrap;
 }
 .primus-serie-toolbar .form-group {
     margin: 0;
+}
+
+/* VENSTRE side */
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
 }
 .primus-serie-field {
     display: flex;
@@ -331,6 +424,62 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     margin: 0;
     white-space: nowrap;
     font-weight: 500;
+}
+
+/* MIDTEN (søk) */
+.toolbar-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.primus-search-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.primus-search-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.primus-search-field label {
+    margin: 0;
+    white-space: nowrap;
+    font-weight: 500;
+}
+.primus-search-input {
+    padding: 0.35rem 0.6rem;
+    border: 1px solid #ced4da;
+    border-radius: 3px;
+    font-size: 0.9rem;
+    width: 10ch;
+}
+.primus-search-input:focus {
+    outline: none;
+    border-color: #3585fe;
+    box-shadow: 0 0 0 2px rgba(53, 133, 254, 0.2);
+}
+.primus-search-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9rem;
+    font-weight: normal;
+    cursor: pointer;
+}
+.primus-search-checkbox input[type="checkbox"] {
+    cursor: pointer;
+}
+.primus-search-checkbox span {
+    white-space: nowrap;
+}
+
+/* HØYRE side */
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
 }
 
 /* Foto header med paging på samme linje */
@@ -497,6 +646,21 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 </style>
 
 <script>
+// Validering for søkeskjema (min 3 tegn)
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    var sokInput = document.getElementById('sok_skipsnavn');
+    var sokVerdi = sokInput.value.trim();
+
+    if (sokVerdi.length > 0 && sokVerdi.length < 3) {
+        e.preventDefault();
+        alert('Søk krever minimum 3 tegn');
+        sokInput.focus();
+        return false;
+    }
+
+    return true;
+});
+
 // Validering for "Gå til side" skjema
 function validateGotoPage() {
     var input = document.getElementById('goto_side');
