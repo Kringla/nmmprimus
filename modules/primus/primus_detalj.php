@@ -153,6 +153,7 @@ function chk(string $n, string $l, bool $v = false): void
 
 function combo(string $n, string $l, array $opts, string $v = '', string $width = '100%'): void
 {
+    // Simple select dropdown (visuell indikasjon via JavaScript for readonly-tilstand)
     echo "<div class='form-group' style='width:$width;'>
             <label for='$n'>$l</label>
             <select name='$n' id='$n' style='width:100%;'>";
@@ -203,6 +204,16 @@ if (!isset($foto['Svarthvitt']) || $foto['Svarthvitt'] === '' || $foto['Svarthvi
 
 $samlingValg = ['C2-Johnsen, Per-Erik', 'C2-Gjersøe, Georg', 'C2-'];
 
+// Split Samling-verdi: hvis ikke en av de faste valgene, ekstrahér suffiks
+$samlingVerdi = (string)($foto['Samling'] ?? '');
+$samlingSuffiks = '';
+
+if (!in_array($samlingVerdi, $samlingValg, true) && str_starts_with($samlingVerdi, 'C2-')) {
+    // Custom verdi som starter med "C2-" - ekstrahér suffiks
+    $samlingSuffiks = substr($samlingVerdi, 3); // Hopp over "C2-"
+    $samlingVerdi = 'C2-'; // Velg "C2-" i dropdown
+}
+
 // --------------------------------------------------
 // Hendelsesmodus (iCh) – session-paritet
 // --------------------------------------------------
@@ -212,7 +223,7 @@ if (isset($_SESSION['primus_iCh'])) {
 } else {
     $iCh = (int)($foto['iCh'] ?? 1);
 }
-if ($iCh < 1 || $iCh > 6) {
+if ($iCh < 1 || $iCh > 4) {
     $iCh = 1;
 }
 
@@ -321,83 +332,25 @@ if (is_post() && ($_POST['action'] ?? '') === 'kopier_foto') {
     }
 
     try {
-        // HVIS DETTE ER EN NY RAD: Lagre den først, deretter kopier
+        // Kopier foto: Kun tillatt for eksisterende (lagrede) rader MED fartøynavn
         if ($nyRad || $fotoId === null) {
-            // Lagre den nye raden først (samme logikk som Oppdater-knappen)
-            $data = $_POST;
-
-            // Validering: NMM_ID må være satt
-            if (empty($data['NMM_ID']) || trim((string)$data['NMM_ID']) === '' || (int)$data['NMM_ID'] === 0) {
-                $_SESSION['primus_form_data'] = $data;
-                $redirectUrl = 'primus_detalj.php?ny_rad=1';
-                echo '<script>alert("FEIL: Du må velge et fartøy fra kandidatlisten før kopiering."); window.location.href = "' . $redirectUrl . '";</script>';
-                exit;
-            }
-
-            // Validering: SerNr må være mellom 1 og 999
-            if (isset($data['SerNr'])) {
-                $serNr = (int)$data['SerNr'];
-                if ($serNr < 1 || $serNr > 999) {
-                    $_SESSION['primus_form_data'] = $data;
-                    $redirectUrl = 'primus_detalj.php?ny_rad=1';
-                    echo '<script>alert("FEIL: SerNr må være mellom 1 og 999"); window.location.href = "' . $redirectUrl . '";</script>';
-                    exit;
-                }
-            }
-
-            // KORRIGERT: Bilde_Fil = NMMSerie-SerNr (3 siffer med leading zeros)
-            if (!empty($data['NMMSerie']) && isset($data['SerNr'])) {
-                $data['Bilde_Fil'] = $data['NMMSerie'] . '-' . str_pad((string)(int)$data['SerNr'], 3, '0', STR_PAD_LEFT);
-            }
-
-            // FotoTidTil automatisk lik FotoTidFra hvis ikke angitt
-            if (isset($data['FotoTidFra'])) {
-                $fotoTidFra = trim((string)$data['FotoTidFra']);
-                $fotoTidTil = isset($data['FotoTidTil']) ? trim((string)$data['FotoTidTil']) : '';
-
-                if ($fotoTidFra !== '' && $fotoTidTil === '') {
-                    $data['FotoTidTil'] = $fotoTidFra;
-                }
-            }
-
-            // Checkbox-håndtering: hvis ikke i POST, sett til 0 (ikke krysset av)
-            $checkboxFelter = ['Aksesjon', 'Fotografi', 'FriKopi'];
-            foreach ($checkboxFelter as $chk) {
-                if (!isset($data[$chk])) {
-                    $data[$chk] = 0;
-                }
-            }
-
-            // Opprett i database (INSERT)
-            $data['Transferred'] = 0;
-            unset($data['Foto_ID']); // Sikre at vi ikke sender Foto_ID for INSERT
-            $lagredesFotoId = foto_lagre($db, $data);
-
-            // Lagre siste SerNr for bruker-tracking
-            if (isset($data['SerNr']) && !empty($data['Bilde_Fil'])) {
-                $userId = (int)($_SESSION['user_id'] ?? 0);
-                $bildeFil = (string)$data['Bilde_Fil'];
-                if ($userId > 0 && strlen($bildeFil) >= 8) {
-                    $serie = substr($bildeFil, 0, 8);
-                    $serNr = (int)$data['SerNr'];
-                    primus_lagre_siste_sernr_for_bruker($userId, $serie, $serNr);
-                }
-            }
-
-            // Rydd opp session
-            unset($_SESSION['primus_ny_serie']);
-            unset($_SESSION['primus_ny_kandidat_sernr']);
-
-            // NÅ har vi et lagret foto med $lagredesFotoId - fortsett med kopiering
-        } else {
-            // EKSISTERENDE RAD: Bruk eksisterende $fotoId
-            $lagredesFotoId = $fotoId;
+            echo '<script>alert("FEIL: Fotoet må lagres før det kan kopieres.\n\nKlikk Oppdater-knappen først, og deretter kan du kopiere."); window.history.back();</script>';
+            exit;
         }
+
+        // Bruk eksisterende lagret foto
+        $lagredesFotoId = $fotoId;
 
         // Hent det lagrede fotoet som skal kopieres
         $eksisterende = foto_hent_en($db, $lagredesFotoId);
         if (!$eksisterende) {
             echo '<script>alert("FEIL: Finner ikke foto."); window.history.back();</script>';
+            exit;
+        }
+
+        // Sjekk at fotoet har et fartøynavn (NMM_ID)
+        if (empty($eksisterende['NMM_ID'])) {
+            echo '<script>alert("FEIL: Fotoet må ha et fartøynavn før det kan kopieres.\n\nVelg et fartøy fra kandidatlisten, klikk Oppdater, og deretter kan du kopiere."); window.history.back();</script>';
             exit;
         }
 
@@ -548,12 +501,26 @@ file_put_contents('c:/xampp/htdocs/debug_post.txt', print_r($_POST, true));
     }
 
     // Checkbox-håndtering: hvis ikke i POST, sett til 0 (ikke krysset av)
-    $checkboxFelter = ['Aksesjon', 'Fotografi', 'FriKopi'];
+    $checkboxFelter = ['Fotografi', 'FriKopi'];
     foreach ($checkboxFelter as $chk) {
         if (!isset($data[$chk])) {
             $data[$chk] = 0;
         }
     }
+
+    // Aksesjon: Sett automatisk basert på iCh (ikke bruker-redigerbart)
+    // iCh 3, 4 → Aksesjon = 1, ellers 0
+    $data['Aksesjon'] = in_array($iCh, [3, 4], true) ? 1 : 0;
+
+    // Samling-suffiks: Kombiner "C2-" + suffiks hvis nødvendig
+    if (isset($data['Samling']) && $data['Samling'] === 'C2-') {
+        $suffix = isset($data['Samling_suffix']) ? trim((string)$data['Samling_suffix']) : '';
+        if ($suffix !== '') {
+            $data['Samling'] = 'C2-' . $suffix;
+        }
+    }
+    // Fjern Samling_suffix fra data (skal ikke lagres som eget felt i database)
+    unset($data['Samling_suffix']);
 
     // Sjekk om dette er en ny rad eller eksisterende
     if ($nyRad || $fotoId === null) {
@@ -609,9 +576,9 @@ file_put_contents('c:/xampp/htdocs/debug_post.txt', print_r($_POST, true));
             }
         }
 
-        // Finn sidenummer og redirect til riktig side
+        // Finn sidenummer og redirect til riktig side med anchor til raden
         $side = primus_finn_side_for_foto($fotoId);
-        redirect('primus_main.php?side=' . $side);
+        redirect('primus_main.php?side=' . $side . '#foto-' . $fotoId);
     }
 }
 
@@ -679,7 +646,15 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             <form method="post" class="inline-form">
                 <?= csrf_field(); ?>
                 <input type="hidden" name="action" value="kopier_foto">
-                <button type="submit" class="btn btn-info" onclick="return confirm('Lagre og kopiere dette fotoet?');">Kopier foto</button>
+                <?php if ($fotoId): ?>
+                    <input type="hidden" name="Foto_ID" value="<?= (int)$fotoId ?>">
+                <?php endif; ?>
+                <?php
+                // Kopier-knapp: kun enabled når raden er lagret MED fartøynavn
+                $nmmId = $foto['NMM_ID'] ?? null;
+                $kanKopiere = !$nyRad && $fotoId !== null && !empty($nmmId);
+                ?>
+                <button type="submit" class="btn btn-info" <?= $kanKopiere ? '' : 'disabled title="Må lagres med fartøynavn først"' ?> onclick="return confirm('Lagre og kopiere dette fotoet?');">Kopier foto</button>
             </form>
             <a href="<?= $nyRad ? 'primus_main.php?avbryt_ny=1' : 'primus_main.php' ?>" class="btn btn-secondary">Tilbake</a>
         </div>
@@ -875,7 +850,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                                 <strong>Hendelsesmodus</strong>
                                 <div class="hendelser-rad">
                                     <?php
-                                    $lbl = [1 => 'Ingen', 2 => 'Fotografi', 3 => 'Samling', 4 => 'Foto+Samling', 5 => 'Annet', 6 => 'Alle'];
+                                    $lbl = [1 => 'Ingen', 2 => 'Fotografi', 3 => 'Samling', 4 => 'Foto+Samling'];
                                     foreach ($lbl as $v => $t):
                                     ?>
                                         <label class="form-check">
@@ -886,12 +861,17 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                                 </div>
 
                                 <?php
-                                // Hendelse: Auto-filled based on iCh, readonly but enabled (must submit in POST)
-                                echo "<div class='form-group'>
-                                        <label for='Hendelse'>Hendelse</label>
-                                        <textarea name='Hendelse' id='Hendelse' rows='2' readonly style='background-color: #ffe6e6; border: 2px solid #cc0000;'>" . h((string)($foto['Hendelse'] ?? '')) . "</textarea>
-                                      </div>";
-                                combo('Samling', 'Samling', $samlingValg, (string)($foto['Samling'] ?? ''));
+                                // Hendelse: Redigerbart ved iCh 1-2, readonly ved iCh 3-6
+                                // JavaScript vil oppdatere readonly-status dynamisk
+                                area('Hendelse', 'Hendelse', (string)($foto['Hendelse'] ?? ''), 2);
+
+                                combo('Samling', 'Samling', $samlingValg, $samlingVerdi);
+                                ?>
+                                <div class="form-group" id="samling-suffix-container" style="display:none;">
+                                    <label for="Samling_suffix" class="text-hint">Legg til Samlingseiers navn her!</label>
+                                    <input type="text" name="Samling_suffix" id="Samling_suffix" value="<?= h($samlingSuffiks) ?>">
+                                </div>
+                                <?php
                                 chk('FriKopi', 'Fri kopi', (bool)($foto['FriKopi'] ?? false));
                                 txt('Fotograf', 'Fotograf', (string)($foto['Fotograf'] ?? ''));
                                 txt('FotoFirma', 'Fotofirma', (string)($foto['FotoFirma'] ?? ''));
@@ -1067,6 +1047,12 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                 Object.keys(json.data.verdier).forEach(function(id) {
                     var el = document.getElementById(id);
                     if(!el) return;
+
+                    // Samling: Only set if currently empty (respect "kun hvis tom" comment in foto_flyt.php)
+                    if(id === 'Samling' && el.value && el.value.trim() !== '') {
+                        return; // Skip - keep existing value
+                    }
+
                     el.value = json.data.verdier[id] || '';
                 });
             }
@@ -1313,6 +1299,32 @@ if (serNrEl) {
 
 <script>
 /* ---------------------------------------------
+   Samling-suffiks: Vis/skjul basert på dropdown-valg
+   --------------------------------------------- */
+(function() {
+    var samlingSelect = document.getElementById('Samling');
+    var samlingSuffixContainer = document.getElementById('samling-suffix-container');
+
+    if (!samlingSelect || !samlingSuffixContainer) return;
+
+    function toggleSamlingSuffix() {
+        if (samlingSelect.value === 'C2-') {
+            samlingSuffixContainer.style.display = 'block';
+        } else {
+            samlingSuffixContainer.style.display = 'none';
+        }
+    }
+
+    // Lytter på endringer i dropdown
+    samlingSelect.addEventListener('change', toggleSamlingSuffix);
+
+    // Kjør ved page load (for å vise suffix hvis "C2-" er valgt)
+    toggleSamlingSuffix();
+})();
+</script>
+
+<script>
+/* ---------------------------------------------
    Synkroniser ReferNeg-felt
    --------------------------------------------- */
 (function() {
@@ -1330,6 +1342,19 @@ if (serNrEl) {
     referNegMain.addEventListener('input', function() {
         referNegTop.value = this.value;
     });
+})();
+</script>
+
+<!-- Load and initialize primus_detalj.js -->
+<script src="<?= BASE_URL; ?>/assets/primus_detalj.js"></script>
+<script>
+(function() {
+    if (typeof window.initPrimusDetalj === 'function') {
+        window.initPrimusDetalj({
+            baseUrl: '<?= BASE_URL; ?>',
+            fotoId: <?= $fotoId ? $fotoId : 'null'; ?>
+        });
+    }
 })();
 </script>
 

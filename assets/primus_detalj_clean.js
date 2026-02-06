@@ -79,7 +79,9 @@
         function initIChState() {
             function oppdaterFotoState(){
                 var valgt = document.querySelector('input[name="iCh"]:checked');
-                if(!valgt) return;
+                if(!valgt) {
+                    return;
+                }
                 var iChVal = parseInt(valgt.value, 10);
 
                 // Lagre iCh til session
@@ -104,11 +106,15 @@
                     var verdier = data.verdier || {};
                     var skalTommes = data.skalTommes || [];
 
+                    console.log('foto_state response:', data);
+
                     // Oppdater felt-tilstander (readonly for inaktive, redigerbart for aktive)
                     // VIKTIG: Bruk readonly (ikke disabled) så felt sender data i POST
                     for (var feltId in felter) {
                         var el = document.getElementById(feltId);
-                        if (!el) continue;
+                        if (!el) {
+                            continue;
+                        }
 
                         var erAktiv = felter[feltId];
 
@@ -129,32 +135,20 @@
                                 el.style.backgroundColor = '#ffe6e6';
                             }
                         }
-                        // Select/checkbox: styling + pointer-events hvis inaktiv
-                        // VIKTIG: Ikke disable (disabled fields sender ikke data i POST)
+                        // Select/checkbox: disable hvis inaktiv
                         else {
+                            el.disabled = !erAktiv;
                             if (erAktiv) {
-                                el.style.borderColor = '#28a745';
-                                el.style.backgroundColor = '';
-                                el.style.pointerEvents = '';
+                                el.style.borderColor = '';
                             } else {
                                 el.style.borderColor = '#dc3545';
-                                el.style.backgroundColor = '#ffe6e6';
-                                el.style.pointerEvents = 'none'; // Hindre klikk, men send data i POST
                             }
                         }
                     }
 
                     // Fyll inn verdier
                     for (var feltNavn in verdier) {
-                        // Spesiell håndtering for Samling: kun sett default hvis tom
-                        if (feltNavn === 'Samling') {
-                            var samlingEl = document.getElementById('Samling');
-                            if (samlingEl && (!samlingEl.value || samlingEl.value.trim() === '')) {
-                                setVal(feltNavn, verdier[feltNavn]);
-                            }
-                        } else {
-                            setVal(feltNavn, verdier[feltNavn]);
-                        }
+                        setVal(feltNavn, verdier[feltNavn]);
                     }
 
                     // Tøm felt som skal tømmes
@@ -196,40 +190,13 @@
                     .then(function(data) {
                         if (!data.ok) return;
 
-                        var d = data.data; // Extract inner data object
-
                         // Oppdater visuelle felt
-                        setVal('ValgtFartoy_vis', d.ValgtFartoy || '');
-                        setVal('FTO_vis', d.FTO || '');
-
-                        // Bygg MotivBeskr fra kandidatfelter (Access-paritet)
-                        var fty = (d.FTY || '').trim();
-                        var fna = (d.FNA || '').trim();
-                        var byg = (d.BYG || '').trim();
-                        var ver = (d.VER || '').trim();
-                        var xna = (d.XNA || '').trim();
-
-                        if (fty === '' || fna === '') {
-                            var fto = (d.FTO || '').trim();
-                            setVal('MotivBeskr', fto !== '' ? fto : '');
-                        } else {
-                            var mb = '';
-                            var bygInfo = 'b. ' + byg;
-                            if (ver !== '') {
-                                bygInfo += ', ' + ver;
-                            }
-
-                            if (xna !== '') {
-                                mb = fty + ' ' + fna + ' (ex. ' + xna + ') (' + bygInfo + ')';
-                            } else {
-                                mb = fty + ' ' + fna + ' (' + bygInfo + ')';
-                            }
-                            setVal('MotivBeskr', mb);
-                        }
-
-                        setVal('MotivType', d.MotivType || '');
-                        setVal('MotivEmne', d.MotivEmne || '');
-                        setVal('MotivKriteria', d.MotivKriteria || '');
+                        setVal('ValgtFartoy_vis', data.ValgtFartoy || '');
+                        setVal('FTO_vis', data.FTO || '');
+                        setVal('MotivBeskr', data.MotivBeskr || '');
+                        setVal('MotivType', data.MotivType || '');
+                        setVal('MotivEmne', data.MotivEmne || '');
+                        setVal('MotivKriteria', data.MotivKriteria || '');
 
                         rad.style.background = '#d4edda';
                         setTimeout(function() { rad.style.background = ''; }, 600);

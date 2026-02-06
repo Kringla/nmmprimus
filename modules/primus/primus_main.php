@@ -321,7 +321,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             $fotoId = (int)$row['Foto_ID'];
             $transferred = !empty($row['Transferred']);
 
-            echo '<tr class="row-clickable" data-foto-id="' . h((string)$fotoId) . '">';
+            echo '<tr id="foto-' . $fotoId . '" class="row-clickable" data-foto-id="' . h((string)$fotoId) . '">';
             echo '<td>' . h((string)$row['Bilde_Fil']) . '</td>';
             echo '<td>' . h((string)($row['MotivBeskr'] ?? '')) . '</td>';
 
@@ -734,6 +734,23 @@ function validateGotoPage() {
         });
     });
     <?php endif; ?>
+
+    // Highlight row if URL has anchor (returning from edit)
+    if (window.location.hash) {
+        var targetId = window.location.hash.substring(1); // Remove #
+        var targetRow = document.getElementById(targetId);
+        if (targetRow) {
+            // Scroll to row (browser does this automatically, but ensure it's visible)
+            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Highlight with animation
+            targetRow.style.backgroundColor = '#d4edda';
+            setTimeout(function() {
+                targetRow.style.transition = 'background-color 1s ease';
+                targetRow.style.backgroundColor = '';
+            }, 300);
+        }
+    }
 })();
 
 <?php if ($isAdmin): ?>

@@ -18,15 +18,17 @@ header('Content-Type: application/json; charset=utf-8');
 // --------------------------------------------------
 // INPUT
 // --------------------------------------------------
-$fme = filter_input(INPUT_POST, 'fmeHendelse', FILTER_VALIDATE_INT);
-if (!$fme || $fme < 1 || $fme > 6) {
-    $fme = 1;
+// Accept both fmeHendelse (old) and iCh (new) as input
+$iCh = filter_input(INPUT_POST, 'iCh', FILTER_VALIDATE_INT);
+if (!$iCh || $iCh < 1 || $iCh > 4) {
+    // Fallback to fmeHendelse if iCh not provided
+    $fme = filter_input(INPUT_POST, 'fmeHendelse', FILTER_VALIDATE_INT);
+    if ($fme && $fme >= 1 && $fme <= 4) {
+        $iCh = foto_hendelsesmodus_fra_fme($fme);
+    } else {
+        $iCh = 1;
+    }
 }
-
-// --------------------------------------------------
-// iCh (1:1 fra Access)
-// --------------------------------------------------
-$iCh = foto_hendelsesmodus_fra_fme($fme);
 
 // --------------------------------------------------
 // Felt-tilstand
@@ -44,8 +46,6 @@ $kodeMap = [
     2 => [101],
     3 => [104],
     4 => [101, 104],
-    5 => [105],
-    6 => [101, 104, 105],
 ];
 
 $verdier['Hendelse'] = '';
