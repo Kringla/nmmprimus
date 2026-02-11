@@ -595,7 +595,6 @@ function primus_hent_foto_for_export(string $serie, int $minSerNr, int $maxSerNr
             Status,
             Tilstand,
             FriKopi,
-            Antall,
             UUID AS Fart_UUID,
             Merknad
         FROM nmmfoto
