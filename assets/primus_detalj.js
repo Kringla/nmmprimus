@@ -10,6 +10,8 @@
     window.initPrimusDetalj = function(config) {
         var baseUrl = config.baseUrl;
         var fotoId = config.fotoId;
+        var nyRad = config.nyRad || false;
+        var h2 = config.h2 || false;
 
         // ------------------- Tabs -------------------
         function initTabs() {
@@ -33,7 +35,7 @@
             });
         }
 
-        // ------------------- Kandidatsøk -------------------
+        // ------------------- Kandidatsøk (AJAX, ingen side-reload) -------------------
         function initKandidatSok() {
             var sokBtn = document.getElementById('btn-kandidat-sok');
             var sokInput = document.getElementById('k_sok');
@@ -42,37 +44,69 @@
             function doKandidatSok() {
                 if (!sokInput) return;
                 var val = sokInput.value.trim();
-                var url = 'primus_detalj.php?Foto_ID=' + fotoId;
-                if (val !== '') {
-                    url += '&k_sok=' + encodeURIComponent(val);
-                }
 
-                // Persist search string to session before navigating
+                // Lagre søk i session
                 fetch(baseUrl + '/modules/primus/api/sett_session.php', {
                     method: 'POST',
                     headers: {'Content-Type':'application/x-www-form-urlencoded'},
                     body: 'primus_k_sok=' + encodeURIComponent(val)
-                }).catch(function(){}).then(function(){ window.location.href = url; });
+                }).catch(function(){});
+
+                // Hent kandidater via AJAX (ingen side-reload)
+                fetch(baseUrl + '/modules/primus/api/kandidat_sok.php', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                    body: 'sok=' + encodeURIComponent(val)
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(resp) {
+                    if (!resp.ok) return;
+                    oppdaterKandidatTabell(resp.data || []);
+                })
+                .catch(function(err) {
+                    console.error('Kandidatsøk feilet:', err);
+                });
             }
 
             sokBtn.addEventListener('click', doKandidatSok);
 
-            // Allow pressing Enter in the search field to trigger the same search
-            // Prevent Enter from submitting the main form (avoids accidental saves/redirects)
+            // Enter i søkefeltet: forhindre form-submit, utfør søk via AJAX
             if (sokInput) {
                 sokInput.addEventListener('keydown', function(e) {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-
-                        // Only perform search via Enter if user has entered more than 2 characters
-                        var val = sokInput.value.trim();
-                        if (val.length > 2) {
-                            doKandidatSok();
-                        }
-                        // Otherwise ignore Enter (user can still click the Søk button)
+                        doKandidatSok();
                     }
                 });
             }
+        }
+
+        // Oppdater kandidattabellen med nye data (DOM-manipulasjon)
+        function oppdaterKandidatTabell(kandidater) {
+            var tbody = document.querySelector('.table-scroll-520 tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            kandidater.forEach(function(k) {
+                var tr = document.createElement('tr');
+                tr.className = 'kandidat-rad';
+                tr.dataset.nmmId = String(k.NMM_ID);
+                var fty = (k.FTY || '').trim();
+                var fna = (k.FNA || '').trim();
+                var navn = (fty + ' ' + fna).trim();
+                tr.dataset.navn = navn;
+
+                var td1 = document.createElement('td');
+                td1.textContent = navn;
+                var td2 = document.createElement('td');
+                td2.className = 'nowrap';
+                td2.textContent = k.BYG || '';
+
+                tr.appendChild(td1);
+                tr.appendChild(td2);
+                tbody.appendChild(tr);
+            });
         }
 
         // ------------------- iCh → foto_state -------------------
@@ -80,7 +114,6 @@
             function oppdaterFotoState(){
                 var valgt = document.querySelector('input[name="iCh"]:checked');
                 if(!valgt) return;
-                var iChVal = parseInt(valgt.value, 10);
 
                 // Lagre iCh til session
                 fetch(baseUrl + '/modules/primus/api/sett_session.php', {
@@ -175,67 +208,78 @@
             });
         }
 
-        // ------------------- Kandidat rad klikk -------------------
+        // ------------------- Kandidat rad klikk (event delegation) -------------------
         function initKandidatRadKlikk() {
-            var inputNmmId = document.getElementById('NMM_ID');
-            if (!inputNmmId) return;
+            var container = document.querySelector('.table-scroll-520');
+            if (!container) return;
 
-            document.querySelectorAll('.kandidat-rad').forEach(function(rad) {
-                rad.addEventListener('click', function() {
-                    var nmmId = this.dataset.nmmId;
-                    if (!nmmId) return;
+            // Event delegation: Fungerer for både initielle og AJAX-laddede rader
+            container.addEventListener('click', function(e) {
+                var rad = e.target.closest('.kandidat-rad');
+                if (!rad) return;
 
-                    inputNmmId.value = nmmId;
+                var nmmId = rad.dataset.nmmId;
+                var navn = rad.dataset.navn || '';
+                if (!nmmId) return;
 
-                    fetch(baseUrl + '/modules/primus/api/kandidat_data.php', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: 'NMM_ID=' + encodeURIComponent(nmmId)
-                    })
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        if (!data.ok) return;
+                // H1-modus: Bekreftelse før endring
+                if (!h2) {
+                    if (!confirm('Vil du endre fartøy til "' + navn + '"?\n\nDette vil overskrive nåværende fartøyinformasjon.')) {
+                        return;
+                    }
+                }
 
-                        var d = data.data; // Extract inner data object
+                setVal('NMM_ID', nmmId);
 
-                        // Oppdater visuelle felt
-                        setVal('ValgtFartoy_vis', d.ValgtFartoy || '');
-                        setVal('FTO_vis', d.FTO || '');
+                fetch(baseUrl + '/modules/primus/api/kandidat_data.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'NMM_ID=' + encodeURIComponent(nmmId)
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data.ok) return;
 
-                        // Bygg MotivBeskr fra kandidatfelter (Access-paritet)
-                        var fty = (d.FTY || '').trim();
-                        var fna = (d.FNA || '').trim();
-                        var byg = (d.BYG || '').trim();
-                        var ver = (d.VER || '').trim();
-                        var xna = (d.XNA || '').trim();
+                    var d = data.data;
 
-                        if (fty === '' || fna === '') {
-                            var fto = (d.FTO || '').trim();
-                            setVal('MotivBeskr', fto !== '' ? fto : '');
-                        } else {
-                            var mb = '';
-                            var bygInfo = 'b. ' + byg;
-                            if (ver !== '') {
-                                bygInfo += ', ' + ver;
-                            }
+                    // Oppdater visuelle felt
+                    setVal('ValgtFartoy_vis', d.ValgtFartoy || '');
+                    setVal('FTO_vis', d.FTO || '');
+                    setVal('Avbildet', d.Avbildet || '');
 
-                            if (xna !== '') {
-                                mb = fty + ' ' + fna + ' (ex. ' + xna + ') (' + bygInfo + ')';
-                            } else {
-                                mb = fty + ' ' + fna + ' (' + bygInfo + ')';
-                            }
-                            setVal('MotivBeskr', mb);
+                    // Bygg MotivBeskr fra kandidatfelter (Access-paritet)
+                    var fty = (d.FTY || '').trim();
+                    var fna = (d.FNA || '').trim();
+                    var byg = (d.BYG || '').trim();
+                    var ver = (d.VER || '').trim();
+                    var xna = (d.XNA || '').trim();
+
+                    if (fty === '' || fna === '') {
+                        var fto = (d.FTO || '').trim();
+                        setVal('MotivBeskr', fto !== '' ? fto : '');
+                    } else {
+                        var mb = '';
+                        var bygInfo = 'b. ' + byg;
+                        if (ver !== '') {
+                            bygInfo += ', ' + ver;
                         }
 
-                        setVal('MotivType', d.MotivType || '');
-                        setVal('MotivEmne', d.MotivEmne || '');
-                        setVal('MotivKriteria', d.MotivKriteria || '');
+                        if (xna !== '') {
+                            mb = fty + ' ' + fna + ' (ex. ' + xna + ') (' + bygInfo + ')';
+                        } else {
+                            mb = fty + ' ' + fna + ' (' + bygInfo + ')';
+                        }
+                        setVal('MotivBeskr', mb);
+                    }
 
-                        rad.style.background = '#d4edda';
-                        setTimeout(function() { rad.style.background = ''; }, 600);
-                    })
-                    .catch(function(){});
-                });
+                    setVal('MotivType', d.MotivType || '-');
+                    setVal('MotivEmne', d.MotivEmne || '-');
+                    setVal('MotivKriteria', d.MotivKriteria || '-');
+
+                    rad.style.background = '#d4edda';
+                    setTimeout(function() { rad.style.background = ''; }, 600);
+                })
+                .catch(function(){});
             });
         }
 

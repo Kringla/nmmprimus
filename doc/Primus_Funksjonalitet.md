@@ -34,13 +34,11 @@ Bygge tabellen `nmmfoto` ved å koble:
 
 - **H1 (Rediger):** Dobbeltklikk på rad → åpne detaljvisning
   - `Foto_ID` brukes som nøkkel
-  - Kandidatpanel skjult
   - Alle felt forhåndsutfylt
 
 - **H2 (Ny):** Klikk "Ny"-knapp
   - Opprett nytt foto i serien
   - `SerNr` = neste ledige nummer (1-999)
-  - Kandidatpanel synlig
   - Kun `SerNr` og `Bilde_Fil` forhåndsutfylt
 
 ---
@@ -51,7 +49,7 @@ Bygge tabellen `nmmfoto` ved å koble:
 
 ### Layout
 
-**Venstre panel (kun H2-modus):**
+**Venstre panel:**
 - Søkbar tabell fra `nmm_skip`
 - Kolonner: `NMM_ID`, `FTY`, `FNA`, `BYG`, `RGH`, `Nasjon`, `KAL`
 - Søk: Fritekst i `FNA`. Søkestreng i felt med tittel "Fartøynavn" (min 3 tegn, ikke case-sensitivt), default verdi for felt med tittel "Fartøynavn" = siste benyttete søkestreng.
@@ -80,11 +78,12 @@ Radioknapper (1-6) som styrer:
 - **5:** (reservert)
 - **6:** Fullstendig (både foto-felt og samling-felt aktive, feltet `Frikopi` verdi = 1)
 
-### Kandidatvalg (kun H2-modus)
+### Kandidatvalg 
 
 Søk i venstre panel etter `FNA`-verdier som inneholder søkestrengen i felt med tittel "Fartøynavn". Søk aktiveres når mer enn 2 karakterer i søkestrengen ved at bruker trykker <Enter> eller egen knapp "Søk".
 
 Ved klikk på rad i venstre panel:
+
 - `MotivBeskr` fylles med fartøynavn og type
 - `FTO` fylles med fartøydata
 - Felt fylles fra x-tabeller basert på `NMM_ID`:
@@ -93,6 +92,13 @@ Ved klikk på rad i venstre panel:
   - `nmmxou` → MotivKriteria
   - `nmmxudk` → (klassifikasjon)
   - `nmmxhendelse` → Hendelse
+I H1-modus skal bruker bekrefte valget før felete oppdateres.
+
+### Valg av  `SerNr` 
+
+**Automatisk valg**: Neste ledige nummer i den "NSM Serie"-og den "Serienr" - verdien som brukeren sist benyttet.
+**Manuelt valg**: Begge kan endres manuelt
+"Bildefil"-verdien oppdateres automatisk
 
 ### Automatiske oppdateringer
 
@@ -121,7 +127,7 @@ Ved klikk på rad i venstre panel:
 
 ---
 
-## Viktig atferd fra Access
+## Viktig atferd
 
 ### Standardverdier
 - Session husker siste valg (serie, hendelsesmodus, fane)
@@ -135,13 +141,6 @@ Ved klikk på rad i venstre panel:
 - SerNr: 1-999, unikt i serien
 - Bilde_Fil: Auto-generert, ikke manuelt redigerbar
 - URL_Bane: Auto-generert basert på Bilde_Fil
-
----
-
-## Ikke implementert
-
-- **NotInList-håndtering:** Access-funksjon for å opprette nye kategorier on-the-fly
-- **Kopier foto-knapp i UI:** Funksjon finnes, men knapp mangler
 
 ---
 

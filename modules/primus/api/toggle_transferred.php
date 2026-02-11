@@ -34,24 +34,32 @@ if (!$fotoId) {
     exit;
 }
 
-// Toggle status
-$success = primus_toggle_transferred($fotoId);
+try {
+    // Toggle status
+    $success = primus_toggle_transferred($fotoId);
 
-if (!$success) {
+    if (!$success) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Kunne ikke oppdatere database']);
+        exit;
+    }
+
+    // Get new status (convert bit to int for proper JSON encoding)
+    $db = db();
+    $stmt = $db->prepare("SELECT CAST(Transferred AS UNSIGNED) AS Transferred FROM nmmfoto WHERE Foto_ID = :id");
+    $stmt->execute(['id' => $fotoId]);
+    $row = $stmt->fetch();
+
+    $transferred = !empty($row['Transferred']) && (int)$row['Transferred'] === 1;
+
+    echo json_encode([
+        'success' => true,
+        'transferred' => $transferred
+    ]);
+} catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Kunne ikke oppdatere database']);
-    exit;
+    echo json_encode([
+        'success' => false,
+        'error' => 'Serverfeil: ' . $e->getMessage()
+    ]);
 }
-
-// Get new status
-$db = db();
-$stmt = $db->prepare("SELECT Transferred FROM nmmfoto WHERE Foto_ID = :id");
-$stmt->execute(['id' => $fotoId]);
-$row = $stmt->fetch();
-
-$transferred = !empty($row['Transferred']);
-
-echo json_encode([
-    'success' => true,
-    'transferred' => $transferred
-]);

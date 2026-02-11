@@ -218,11 +218,36 @@ if (!in_array($samlingVerdi, $samlingValg, true) && str_starts_with($samlingVerd
 // Hendelsesmodus (iCh) – session-paritet
 // --------------------------------------------------
 // NB: Hvis dette er en ny rad (H2-modus), tvinges hendelsesmodus til 1
-if (isset($_SESSION['primus_iCh'])) {
-    $iCh = (int)$_SESSION['primus_iCh'];
+if ($h2) {
+    // Ny rad: iCh=1 (allerede satt på linje 195)
+    $iCh = 1;
 } else {
-    $iCh = (int)($foto['iCh'] ?? 1);
+    // VIKTIG: Hvis dette er POST (bruker lagrer), bruk iCh fra POST
+    // Hvis ikke POST (bruker åpner rad), beregn iCh fra Aksesjon/Fotografi
+    if (is_post() && isset($_POST['iCh'])) {
+        $iCh = (int)$_POST['iCh'];
+        $_SESSION['primus_iCh'] = $iCh;
+    } else {
+        // Eksisterende rad: Beregn iCh fra Aksesjon/Fotografi (master-kilde)
+        $aksesjon = isset($foto['Aksesjon']) ? (int)$foto['Aksesjon'] : 0;
+        $fotografi = isset($foto['Fotografi']) ? (int)$foto['Fotografi'] : 0;
+
+        if ($aksesjon === 1 && $fotografi === 1) {
+            $iCh = 4;  // Foto + Samling
+        } elseif ($aksesjon === 1 && $fotografi === 0) {
+            $iCh = 3;  // Samlingshendelse
+        } elseif ($aksesjon === 0 && $fotografi === 1) {
+            $iCh = 2;  // Fotohendelse
+        } else {
+            $iCh = 1;  // Kun hendelse
+        }
+
+        // Synkroniser session med beregnet verdi
+        $_SESSION['primus_iCh'] = $iCh;
+    }
 }
+
+// Validering (sikkerhet)
 if ($iCh < 1 || $iCh > 4) {
     $iCh = 1;
 }
@@ -443,11 +468,33 @@ if (is_post() && ($_POST['action'] ?? '') === 'kopier_foto') {
 }
 
 // --------------------------------------------------
+// POST: marker som kontrollert (oppdater Oppdatert_Tid til NOW())
+// --------------------------------------------------
+if (is_post() && ($_POST['action'] ?? '') === 'marker_kontrollert') {
+    if (!csrf_validate()) {
+        die('Ugyldig forespørsel (CSRF).');
+    }
+
+    // Kun tillatt for eksisterende (lagrede) rader
+    if ($nyRad || $fotoId === null) {
+        echo '<script>alert("FEIL: Kan ikke markere som kontrollert før fotoet er lagret."); window.history.back();</script>';
+        exit;
+    }
+
+    // Oppdater Oppdatert_Tid til NOW()
+    $stmt = $db->prepare("UPDATE nmmfoto SET Oppdatert_Tid = NOW() WHERE Foto_ID = :foto_id");
+    $stmt->execute(['foto_id' => $fotoId]);
+
+    // Redirect tilbake til hovedsiden (samme logikk som Tilbake-knappen)
+    $side = primus_finn_side_for_foto($fotoId);
+    $tilbakeUrl = 'primus_main.php?side=' . $side . '#foto-' . $fotoId;
+    redirect($tilbakeUrl);
+}
+
+// --------------------------------------------------
 // POST: lagre foto (først her skjer DB-lagring)
 // --------------------------------------------------
 if (is_post() && ($_POST['action'] ?? '') !== 'kopier_foto') {
-    // DEBUG: Se hva som sendes
-file_put_contents('c:/xampp/htdocs/debug_post.txt', print_r($_POST, true));
     if (!csrf_validate()) {
         die('Ugyldig forespørsel (CSRF).');
     }
@@ -501,7 +548,7 @@ file_put_contents('c:/xampp/htdocs/debug_post.txt', print_r($_POST, true));
     }
 
     // Checkbox-håndtering: hvis ikke i POST, sett til 0 (ikke krysset av)
-    $checkboxFelter = ['Fotografi', 'FriKopi'];
+    $checkboxFelter = ['FriKopi'];
     foreach ($checkboxFelter as $chk) {
         if (!isset($data[$chk])) {
             $data[$chk] = 0;
@@ -511,6 +558,10 @@ file_put_contents('c:/xampp/htdocs/debug_post.txt', print_r($_POST, true));
     // Aksesjon: Sett automatisk basert på iCh (ikke bruker-redigerbart)
     // iCh 3, 4 → Aksesjon = 1, ellers 0
     $data['Aksesjon'] = in_array($iCh, [3, 4], true) ? 1 : 0;
+
+    // Fotografi: Sett automatisk basert på iCh (ikke bruker-redigerbart)
+    // iCh 2, 4 → Fotografi = 1, ellers 0
+    $data['Fotografi'] = in_array($iCh, [2, 4], true) ? 1 : 0;
 
     // Samling-suffiks: Kombiner "C2-" + suffiks hvis nødvendig
     if (isset($data['Samling']) && $data['Samling'] === 'C2-') {
@@ -632,6 +683,14 @@ if ($aktNmmId > 0) {
     }
 }
 
+// Beregn Tilbake-URL (samme logikk som Oppdater-knappen)
+if ($nyRad) {
+    $tilbakeUrl = 'primus_main.php?avbryt_ny=1';
+} else {
+    $side = primus_finn_side_for_foto($fotoId);
+    $tilbakeUrl = 'primus_main.php?side=' . $side . '#foto-' . $fotoId;
+}
+
 // NÅ kan vi inkludere layout (etter all logikk)
 $pageTitle = 'Primus – foto';
 require_once __DIR__ . '/../../includes/layout_start.php';
@@ -656,7 +715,19 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                 ?>
                 <button type="submit" class="btn btn-info" <?= $kanKopiere ? '' : 'disabled title="Må lagres med fartøynavn først"' ?> onclick="return confirm('Lagre og kopiere dette fotoet?');">Kopier foto</button>
             </form>
-            <a href="<?= $nyRad ? 'primus_main.php?avbryt_ny=1' : 'primus_main.php' ?>" class="btn btn-secondary">Tilbake</a>
+            <form method="post" class="inline-form">
+                <?= csrf_field(); ?>
+                <input type="hidden" name="action" value="marker_kontrollert">
+                <?php if ($fotoId): ?>
+                    <input type="hidden" name="Foto_ID" value="<?= (int)$fotoId ?>">
+                <?php endif; ?>
+                <?php
+                // Kontrollert-knapp: kun enabled når raden er lagret
+                $kanMarkereKontrollert = !$nyRad && $fotoId !== null;
+                ?>
+                <button type="submit" class="btn btn-success" <?= $kanMarkereKontrollert ? '' : 'disabled title="Må lagres først"' ?>>Kontrollert</button>
+            </form>
+            <a href="<?= h($tilbakeUrl) ?>" class="btn btn-secondary">Tilbake</a>
         </div>
     </div>
 
@@ -941,60 +1012,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
         });
     });
 
-    // ---------------- Kandidatsøk (GET uten nested form) ----------------
-    var sokBtn = document.getElementById('btn-kandidat-sok');
-    if (sokBtn) {
-        sokBtn.addEventListener('click', function () {
-            var sok = document.getElementById('k_sok');
-            if (!sok) return;
-
-            <?php if ($nyRad): ?>
-            var url = 'primus_detalj.php?ny_rad=1';
-            <?php else: ?>
-            var url = 'primus_detalj.php?Foto_ID=<?= (int)$fotoId ?>';
-            <?php endif; ?>
-            if (sok.value.trim() !== '') {
-                url += '&k_sok=' + encodeURIComponent(sok.value.trim());
-            }
-
-            // Persist søket i session før navigasjon
-            fetch(baseUrl + '/modules/primus/api/sett_session.php', {
-                method: 'POST',
-                headers: {'Content-Type':'application/x-www-form-urlencoded'},
-                body: 'primus_k_sok=' + encodeURIComponent(sok.value.trim())
-            }).catch(function(){}).then(function(){ window.location.href = url; });
-        });
-
-        // Prevent Enter key in the candidate search field from submitting the main form.
-        // This avoids accidental saves/redirects — Enter will perform the candidate search instead.
-        var sokInput = document.getElementById('k_sok');
-        if (sokInput) {
-            sokInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-
-                    // Trigger the same search behaviour as the button click,
-                    // but only if there are characters in the field.
-                    var val = sokInput.value.trim();
-                    if (val !== '') {
-                        <?php if ($nyRad): ?>
-                        var url = 'primus_detalj.php?ny_rad=1';
-                        <?php else: ?>
-                        var url = 'primus_detalj.php?Foto_ID=<?= (int)$fotoId ?>';
-                        <?php endif; ?>
-                        url += '&k_sok=' + encodeURIComponent(val);
-
-                        fetch(baseUrl + '/modules/primus/api/sett_session.php', {
-                            method: 'POST',
-                            headers: {'Content-Type':'application/x-www-form-urlencoded'},
-                            body: 'primus_k_sok=' + encodeURIComponent(val)
-                        }).catch(function(){}).then(function(){ window.location.href = url; });
-                    }
-                    // If empty, ignore the Enter key (do not submit form)
-                }
-            });
-        }
-    }
+    // Kandidatsøk håndteres av primus_detalj.js (initKandidatSok)
 
     // ---------------- iCh → foto_state ----------------
     function oppdaterFotoState(){
@@ -1065,90 +1083,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
     oppdaterFotoState();
 
-    // ---------------- Kandidatklikk (H1 og H2) ----------------
-    var h2 = <?= $h2 ? 'true' : 'false' ?>;
-
-    function settFelt(id, val){
-        var el = document.getElementById(id);
-        if(!el) return;
-        el.value = val || '';
-    }
-
-    function settVis(id, val){
-        var el = document.getElementById(id);
-        if(!el) return;
-        el.value = val || '';
-    }
-
-    function oppdaterFartoyFelter(nmmId) {
-        fetch(baseUrl + '/modules/primus/api/kandidat_data.php', {
-            method: 'POST',
-            headers: {'Content-Type':'application/x-www-form-urlencoded'},
-            body: 'NMM_ID=' + encodeURIComponent(nmmId)
-        })
-        .then(function(r) { return r.ok ? r.json() : null; })
-        .then(function(json) {
-            if(!json || !json.ok || !json.data) return;
-
-            var d = json.data;
-
-            // Kandidatstyrt kontekst
-            settFelt('NMM_ID', nmmId);
-
-            // Overskriv felt i skjema (Access: SummaryFields)
-            settVis('ValgtFartoy_vis', d.ValgtFartoy || '');
-            settVis('FTO_vis', d.FTO || '');
-
-            settFelt('Avbildet', d.Avbildet || '');
-            settFelt('MotivType', d.MotivType || '-');
-            settFelt('MotivEmne', d.MotivEmne || '-');
-            settFelt('MotivKriteria', d.MotivKriteria || '-');
-
-            // Access-paritet: bygg MotivBeskr fra kandidatfelter
-            var fty = (d.FTY || '').trim();
-            var fna = (d.FNA || '').trim();
-            var byg = (d.BYG || '').trim();
-            var ver = (d.VER || '').trim();
-            var xna = (d.XNA || '').trim();
-
-            if (fty === '' || fna === '') {
-                var fto = (d.FTO || '').trim();
-                settFelt('MotivBeskr', fto !== '' ? fto : '');
-            } else {
-                var mb = '';
-                var bygInfo = 'b. ' + byg;
-                if (ver !== '') {
-                    bygInfo += ', ' + ver;
-                }
-
-                if (xna !== '') {
-                    mb = fty + ' ' + fna + ' (ex. ' + xna + ') (' + bygInfo + ')';
-                } else {
-                    mb = fty + ' ' + fna + ' (' + bygInfo + ')';
-                }
-                settFelt('MotivBeskr', mb);
-            }
-        })
-        .catch(function(){});
-    }
-
-    document.querySelectorAll('.kandidat-rad').forEach(function(row) {
-        row.addEventListener('click', function(){
-            var nmmId = this.dataset.nmmId;
-            var navn = this.dataset.navn || '';
-            if (!nmmId) return;
-
-            if (h2) {
-                // H2-modus: Direkte oppdatering (som før)
-                oppdaterFartoyFelter(nmmId);
-            } else {
-                // H1-modus: Bekreftelse først
-                if (confirm('Vil du endre fartøy til "' + navn + '"?\n\nDette vil overskrive nåværende fartøyinformasjon.')) {
-                    oppdaterFartoyFelter(nmmId);
-                }
-            }
-        });
-    });
+    // Kandidatklikk håndteres av primus_detalj.js (initKandidatRadKlikk med event delegation)
 })();
 </script>
 
@@ -1195,74 +1130,6 @@ var serNrEl = document.getElementById('SerNr');
 if (serNrEl) {
     serNrEl.addEventListener('input', oppdaterBildeFil);
 }
-</script>
-
-<script>
-/* ---------------------------------------------
-   Tillegg, Motivbeskrivelse -> Motivbeskrivelse
-   --------------------------------------------- */
-(function() {
-    var tillegg = document.getElementById('MotivBeskrTillegg');
-    var motiv = document.getElementById('MotivBeskr');
-
-    if (!tillegg || !motiv) return;
-
-    function appendTillegg() {
-        var tilleggVal = tillegg.value.trim();
-        if (tilleggVal === '') return;
-
-        var motivVal = motiv.value.trim();
-        if (motivVal === '') {
-            motiv.value = tilleggVal;
-        } else {
-            motiv.value = motivVal + ' ' + tilleggVal;
-        }
-
-        // Keep value in Tillegg field for storage
-    }
-
-    // On blur (when field loses focus)
-    tillegg.addEventListener('blur', appendTillegg);
-
-    // On Enter key
-    tillegg.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            appendTillegg();
-        }
-    });
-})();
-</script>
-
-<script>
-/* ---------------------------------------------
-   Legg til 'Skipsportrett' button
-   --------------------------------------------- */
-(function() {
-    var btn = document.getElementById('btn-leggtil-skipsportrett');
-    if (!btn) return;
-
-    btn.addEventListener('click', function() {
-        var motivType = document.getElementById('MotivType');
-        if (!motivType) return;
-
-        var current = motivType.value.trim();
-        // Format from Access: ID;MotivType;UUID
-        var toAdd = '1060;Skipsportrett;4D9A6929-3BE1-42E4-B5F4-A2782C75A054';
-
-        // Check if 'Skipsportrett' already exists
-        if (current.toLowerCase().includes('skipsportrett')) {
-            return; // Already present
-        }
-
-        // Append with newline separator if there's existing content
-        if (current === '' || current === '-') {
-            motivType.value = toAdd;
-        } else {
-            motivType.value = current + '\n' + toAdd;
-        }
-    });
-})();
 </script>
 
 <script>
@@ -1346,13 +1213,15 @@ if (serNrEl) {
 </script>
 
 <!-- Load and initialize primus_detalj.js -->
-<script src="<?= BASE_URL; ?>/assets/primus_detalj.js"></script>
+<script src="<?= BASE_URL; ?>/assets/primus_detalj.js?v=<?= filemtime(__DIR__ . '/../../assets/primus_detalj.js'); ?>"></script>
 <script>
 (function() {
     if (typeof window.initPrimusDetalj === 'function') {
         window.initPrimusDetalj({
             baseUrl: '<?= BASE_URL; ?>',
-            fotoId: <?= $fotoId ? $fotoId : 'null'; ?>
+            fotoId: <?= $fotoId ? $fotoId : 'null'; ?>,
+            nyRad: <?= $nyRad ? 'true' : 'false'; ?>,
+            h2: <?= $h2 ? 'true' : 'false'; ?>
         });
     }
 })();

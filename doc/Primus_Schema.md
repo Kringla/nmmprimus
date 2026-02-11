@@ -64,6 +64,8 @@ CREATE TABLE IF NOT EXISTS `nmmfoto` (
   `Transferred` tinyint(1) DEFAULT NULL,
   `Merknad` varchar(255) DEFAULT NULL,
   `Flag` tinyint(1) DEFAULT NULL,
+  `Opprettet_Tid` datetime DEFAULT CURRENT_TIMESTAMP COMMENT 'Tidspunkt for opprettelse av rad',
+  `Oppdatert_Tid` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Tidspunkt for siste oppdatering',
   PRIMARY KEY (`Foto_ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=239 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

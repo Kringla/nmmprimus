@@ -78,32 +78,84 @@ function primus_lagre_sist_valgte_serie(int $userId, string $serie): void
    FOTO-LISTER
 -------------------------------------------------- */
 
-function primus_hent_foto_for_serie(string $serie, int $limit = 20, int $offset = 0): array
+function primus_hent_foto_for_serie(
+    string $serie,
+    int $limit = 20,
+    int $offset = 0,
+    ?string $dateFra = null,
+    ?string $dateTil = null,
+    string $dateField = 'Oppdatert_Tid'
+): array
 {
     $db = db();
-    $stmt = $db->prepare("
-        SELECT Foto_ID, Bilde_Fil, MotivBeskr, Transferred
+
+    // Bygg WHERE-klausul dynamisk
+    $where = "WHERE LEFT(Bilde_Fil, 8) = :serie";
+    $params = ['serie' => $serie];
+
+    // Legg til tidsfilter hvis angitt
+    if ($dateFra !== null && $dateFra !== '') {
+        $where .= " AND $dateField >= :date_fra";
+        $params['date_fra'] = $dateFra . ' 00:00:00';
+    }
+
+    if ($dateTil !== null && $dateTil !== '') {
+        // Til-dato: < dagen etter (inkluderer hele til-dagen)
+        $where .= " AND $dateField < DATE_ADD(:date_til, INTERVAL 1 DAY)";
+        $params['date_til'] = $dateTil . ' 00:00:00';
+    }
+
+    $sql = "
+        SELECT Foto_ID, Bilde_Fil, MotivBeskr, Transferred, Fotografi, Aksesjon, Samling, Oppdatert_Tid
         FROM nmmfoto
-        WHERE LEFT(Bilde_Fil, 8) = :serie
+        $where
         ORDER BY Bilde_Fil DESC
         LIMIT :limit OFFSET :offset
-    ");
-    $stmt->bindValue('serie', $serie, PDO::PARAM_STR);
+    ";
+
+    $stmt = $db->prepare($sql);
+    foreach ($params as $key => $val) {
+        $stmt->bindValue($key, $val, PDO::PARAM_STR);
+    }
     $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
     $stmt->bindValue('offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
+
     return $stmt->fetchAll();
 }
 
-function primus_hent_totalt_antall_foto(string $serie): int
+function primus_hent_totalt_antall_foto(
+    string $serie,
+    ?string $dateFra = null,
+    ?string $dateTil = null,
+    string $dateField = 'Oppdatert_Tid'
+): int
 {
     $db = db();
-    $stmt = $db->prepare("
+
+    // Bygg WHERE-klausul dynamisk
+    $where = "WHERE LEFT(Bilde_Fil, 8) = :serie";
+    $params = ['serie' => $serie];
+
+    // Legg til tidsfilter hvis angitt
+    if ($dateFra !== null && $dateFra !== '') {
+        $where .= " AND $dateField >= :date_fra";
+        $params['date_fra'] = $dateFra . ' 00:00:00';
+    }
+
+    if ($dateTil !== null && $dateTil !== '') {
+        $where .= " AND $dateField < DATE_ADD(:date_til, INTERVAL 1 DAY)";
+        $params['date_til'] = $dateTil . ' 00:00:00';
+    }
+
+    $sql = "
         SELECT COUNT(*) as total
         FROM nmmfoto
-        WHERE LEFT(Bilde_Fil, 8) = :serie
-    ");
-    $stmt->execute(['serie' => $serie]);
+        $where
+    ";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
     $row = $stmt->fetch();
     return (int)($row['total'] ?? 0);
 }
@@ -115,14 +167,25 @@ function primus_hent_totalt_antall_foto(string $serie): int
  * @param string|null $serie Valgfri serie-filtrering (8 tegn) - null for alle serier
  * @param int $limit Antall resultater per side
  * @param int $offset Offset for paging
+ * @param string|null $dateFra Valgfri fra-dato (YYYY-MM-DD)
+ * @param string|null $dateTil Valgfri til-dato (YYYY-MM-DD)
+ * @param string $dateField Felt å filtrere på (Oppdatert_Tid eller Opprettet_Tid)
  * @return array Liste med foto
  */
-function primus_sok_foto_etter_skipsnavn(string $skipsnavn, ?string $serie, int $limit = 20, int $offset = 0): array
+function primus_sok_foto_etter_skipsnavn(
+    string $skipsnavn,
+    ?string $serie,
+    int $limit = 20,
+    int $offset = 0,
+    ?string $dateFra = null,
+    ?string $dateTil = null,
+    string $dateField = 'Oppdatert_Tid'
+): array
 {
     $db = db();
 
     $sql = "
-        SELECT f.Foto_ID, f.Bilde_Fil, f.MotivBeskr, f.Transferred
+        SELECT f.Foto_ID, f.Bilde_Fil, f.MotivBeskr, f.Transferred, f.Fotografi, f.Aksesjon, f.Samling, f.Oppdatert_Tid
         FROM nmmfoto f
         INNER JOIN nmm_skip s ON f.NMM_ID = s.NMM_ID
         WHERE s.FNA LIKE :skipsnavn
@@ -135,6 +198,17 @@ function primus_sok_foto_etter_skipsnavn(string $skipsnavn, ?string $serie, int 
         $params['serie'] = $serie;
     }
 
+    // Legg til tidsfilter hvis angitt
+    if ($dateFra !== null && $dateFra !== '') {
+        $sql .= " AND f.$dateField >= :date_fra ";
+        $params['date_fra'] = $dateFra . ' 00:00:00';
+    }
+
+    if ($dateTil !== null && $dateTil !== '') {
+        $sql .= " AND f.$dateField < DATE_ADD(:date_til, INTERVAL 1 DAY) ";
+        $params['date_til'] = $dateTil . ' 00:00:00';
+    }
+
     $sql .= "
         ORDER BY f.Bilde_Fil DESC
         LIMIT :limit OFFSET :offset
@@ -144,6 +218,12 @@ function primus_sok_foto_etter_skipsnavn(string $skipsnavn, ?string $serie, int 
     $stmt->bindValue('skipsnavn', $params['skipsnavn'], PDO::PARAM_STR);
     if (isset($params['serie'])) {
         $stmt->bindValue('serie', $params['serie'], PDO::PARAM_STR);
+    }
+    if (isset($params['date_fra'])) {
+        $stmt->bindValue('date_fra', $params['date_fra'], PDO::PARAM_STR);
+    }
+    if (isset($params['date_til'])) {
+        $stmt->bindValue('date_til', $params['date_til'], PDO::PARAM_STR);
     }
     $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
     $stmt->bindValue('offset', $offset, PDO::PARAM_INT);
@@ -157,9 +237,18 @@ function primus_sok_foto_etter_skipsnavn(string $skipsnavn, ?string $serie, int 
  *
  * @param string $skipsnavn Skipsnavn å søke etter
  * @param string|null $serie Valgfri serie-filtrering - null for alle serier
+ * @param string|null $dateFra Valgfri fra-dato (YYYY-MM-DD)
+ * @param string|null $dateTil Valgfri til-dato (YYYY-MM-DD)
+ * @param string $dateField Felt å filtrere på (Oppdatert_Tid eller Opprettet_Tid)
  * @return int Antall treff
  */
-function primus_sok_foto_etter_skipsnavn_antall(string $skipsnavn, ?string $serie): int
+function primus_sok_foto_etter_skipsnavn_antall(
+    string $skipsnavn,
+    ?string $serie,
+    ?string $dateFra = null,
+    ?string $dateTil = null,
+    string $dateField = 'Oppdatert_Tid'
+): int
 {
     $db = db();
 
@@ -175,6 +264,17 @@ function primus_sok_foto_etter_skipsnavn_antall(string $skipsnavn, ?string $seri
     if ($serie !== null && $serie !== '') {
         $sql .= " AND LEFT(f.Bilde_Fil, 8) = :serie ";
         $params['serie'] = $serie;
+    }
+
+    // Legg til tidsfilter hvis angitt
+    if ($dateFra !== null && $dateFra !== '') {
+        $sql .= " AND f.$dateField >= :date_fra ";
+        $params['date_fra'] = $dateFra . ' 00:00:00';
+    }
+
+    if ($dateTil !== null && $dateTil !== '') {
+        $sql .= " AND f.$dateField < DATE_ADD(:date_til, INTERVAL 1 DAY) ";
+        $params['date_til'] = $dateTil . ' 00:00:00';
     }
 
     $stmt = $db->prepare($sql);
@@ -499,7 +599,7 @@ function primus_hent_foto_for_export(string $serie, int $minSerNr, int $maxSerNr
             UUID AS Fart_UUID,
             Merknad
         FROM nmmfoto
-        WHERE Transferred = b'0'
+        WHERE Transferred = 0
           AND LEFT(Bilde_Fil, 8) = :serie
           AND SerNr BETWEEN :min_sernr AND :max_sernr
         ORDER BY SerNr
@@ -529,7 +629,7 @@ function primus_marker_som_transferred(array $fotoIds): bool
     $placeholders = implode(',', array_fill(0, count($fotoIds), '?'));
     $stmt = $db->prepare("
         UPDATE nmmfoto
-        SET Transferred = b'1'
+        SET Transferred = 1
         WHERE Foto_ID IN ($placeholders)
     ");
 
@@ -546,7 +646,7 @@ function primus_toggle_transferred(int $fotoId): bool
 
     $stmt = $db->prepare("
         UPDATE nmmfoto
-        SET Transferred = IF(Transferred = b'1', b'0', b'1')
+        SET Transferred = NOT Transferred
         WHERE Foto_ID = :foto_id
     ");
 

@@ -438,10 +438,58 @@ echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE)
 - [ ] Bruk BASE_URL konstant
 - [ ] Norske, beskrivende navn
 - [ ] Dokumentert med kommentar
+- [ ] **Angi alltid hvilke filer som må overføres til produksjon etter endringer**
 
 ---
 
-## 11. Kjente problemer
+## 11. Deployment til produksjon
+
+**VIKTIG:** Etter enhver kodeendring skal du alltid angi hvilke filer som må overføres til produksjon.
+
+### Format for deployment-liste:
+
+```markdown
+## 📦 Filer å overføre til produksjon:
+
+1. ✅ `modules/primus/primus_main.php`
+2. ✅ `modules/primus/primus_modell.php`
+3. ✅ `modules/primus/primus_detalj.php`
+
+**Nye filer:**
+- ✅ `modules/primus/api/ny_fil.php`
+
+**Filer å slette:**
+- 🗑️ `modules/primus/gammel_fil.php`
+```
+
+### Retningslinjer:
+
+1. **Liste alle endrede filer** - Bruk relative paths fra prosjektrot
+2. **Marker nye filer** - Angi tydelig hvilke filer som er nye
+3. **Angi filer som skal slettes** - Hvis noen filer skal fjernes i produksjon
+4. **Kort forklaring** - Hvis nødvendig, forklar hva hver fil gjør
+5. **Alltid på slutten** - Legg deployment-listen på slutten av svaret/oppsummeringen
+
+### Eksempel fra praksis:
+
+```markdown
+## ✅ Ferdig! Tre read-only kolonner lagt til
+
+[... beskrivelse av endringer ...]
+
+---
+
+## 📦 Filer å overføre til produksjon:
+
+1. ✅ `modules/primus/primus_modell.php` (henter nye felt)
+2. ✅ `modules/primus/primus_main.php` (viser nye kolonner)
+
+**Test etter deployment:** Refresh siden og verifiser at nye kolonner vises.
+```
+
+---
+
+## 12. Kjente problemer
 
 **Se [ROADMAP.md](ROADMAP.md) for fullstendig liste og implementeringsplan.**
 
@@ -466,7 +514,7 @@ echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE)
 
 ---
 
-## 12. Feilsøking
+## 13. Feilsøking
 
 ### Vanlige problemer
 
@@ -497,7 +545,7 @@ WHERE expires_at > NOW();
 
 ---
 
-## 13. Når du står fast
+## 14. Når du står fast
 
 1. Sjekk [AGENTS.md](AGENTS.md)
 2. Sjekk [doc/Primus_Funksjonalitet.md](doc/Primus_Funksjonalitet.md)
@@ -508,7 +556,7 @@ WHERE expires_at > NOW();
 
 ---
 
-## 14. Viktige dokumenter
+## 15. Viktige dokumenter
 
 | Fil | Formål |
 |-----|--------|

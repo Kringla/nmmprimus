@@ -38,13 +38,57 @@ if (is_post() && ($_POST['action'] ?? '') === 'slett_foto') {
     if (!csrf_validate()) {
         die('Ugyldig forespørsel (CSRF).');
     }
-    
+
     $slettFotoId = filter_var($_POST['foto_id'] ?? '', FILTER_VALIDATE_INT);
     if ($slettFotoId) {
         $stmt = $db->prepare("DELETE FROM nmmfoto WHERE Foto_ID = :id");
         $stmt->execute(['id' => $slettFotoId]);
     }
     redirect('primus_main.php');
+}
+
+// --------------------------------------------------
+// Marker som kontrollert (oppdater Oppdatert_Tid til NOW())
+// --------------------------------------------------
+if (is_post() && ($_POST['action'] ?? '') === 'marker_kontrollert_main') {
+    if (!csrf_validate()) {
+        die('Ugyldig forespørsel (CSRF).');
+    }
+
+    $kontrollerFotoId = filter_var($_POST['foto_id'] ?? '', FILTER_VALIDATE_INT);
+    if ($kontrollerFotoId) {
+        $stmt = $db->prepare("UPDATE nmmfoto SET Oppdatert_Tid = NOW() WHERE Foto_ID = :id");
+        $stmt->execute(['id' => $kontrollerFotoId]);
+    }
+
+    // Redirect tilbake til samme side med samme parametere (bevarer filtre og paginering)
+    $redirectParams = [];
+    if (!empty($_GET['serie'])) {
+        $redirectParams[] = 'serie=' . urlencode($_GET['serie']);
+    }
+    if (!empty($_GET['side'])) {
+        $redirectParams[] = 'side=' . urlencode($_GET['side']);
+    }
+    if (!empty($_GET['skipsnavn'])) {
+        $redirectParams[] = 'skipsnavn=' . urlencode($_GET['skipsnavn']);
+    }
+    // Tidsfiltere
+    if (!empty($_GET['date_fra'])) {
+        $redirectParams[] = 'date_fra=' . urlencode($_GET['date_fra']);
+    }
+    if (!empty($_GET['date_til'])) {
+        $redirectParams[] = 'date_til=' . urlencode($_GET['date_til']);
+    }
+    if (!empty($_GET['date_field'])) {
+        $redirectParams[] = 'date_field=' . urlencode($_GET['date_field']);
+    }
+
+    $redirectUrl = 'primus_main.php';
+    if (!empty($redirectParams)) {
+        $redirectUrl .= '?' . implode('&', $redirectParams);
+    }
+
+    redirect($redirectUrl);
 }
 
 // --------------------------------------------------
@@ -101,6 +145,34 @@ $sokAllSerier = isset($_GET['sok_alle_serier']) && $_GET['sok_alle_serier'] === 
 $erSok = ($sokSkipsnavn !== '' && strlen($sokSkipsnavn) >= 3);
 
 // --------------------------------------------------
+// Tidsfilter-parametere
+// --------------------------------------------------
+$dateFra = trim($_GET['dato_fra'] ?? '');
+$dateTil = trim($_GET['dato_til'] ?? '');
+$dateField = trim($_GET['date_field'] ?? 'Oppdatert_Tid');
+
+// Valider datoformat (YYYY-MM-DD)
+if ($dateFra !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFra)) {
+    $dateFra = '';
+}
+if ($dateTil !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTil)) {
+    $dateTil = '';
+}
+
+// Valider felt-navn (whitelist)
+if (!in_array($dateField, ['Opprettet_Tid', 'Oppdatert_Tid'], true)) {
+    $dateField = 'Oppdatert_Tid';
+}
+
+// Logisk validering: fra <= til (bytt om hvis feil rekkefølge)
+if ($dateFra !== '' && $dateTil !== '' && $dateFra > $dateTil) {
+    [$dateFra, $dateTil] = [$dateTil, $dateFra];
+}
+
+// Sjekk om tidsfilter er aktivt
+$erTidsfilterAktivt = ($dateFra !== '' || $dateTil !== '');
+
+// --------------------------------------------------
 // Paging
 // --------------------------------------------------
 $side = filter_input(INPUT_GET, 'side', FILTER_VALIDATE_INT) ?: 1;
@@ -117,14 +189,40 @@ $fotoListe = [];
 $totaltAntall = 0;
 
 if ($erSok) {
-    // Søk etter skipsnavn
+    // Søk etter skipsnavn (med/uten tidsfilter)
     $sokSerie = $sokAllSerier ? null : (string)$valgtSerie;
-    $fotoListe = primus_sok_foto_etter_skipsnavn($sokSkipsnavn, $sokSerie, $perSide, $offset);
-    $totaltAntall = primus_sok_foto_etter_skipsnavn_antall($sokSkipsnavn, $sokSerie);
+    $fotoListe = primus_sok_foto_etter_skipsnavn(
+        $sokSkipsnavn,
+        $sokSerie,
+        $perSide,
+        $offset,
+        $dateFra !== '' ? $dateFra : null,
+        $dateTil !== '' ? $dateTil : null,
+        $dateField
+    );
+    $totaltAntall = primus_sok_foto_etter_skipsnavn_antall(
+        $sokSkipsnavn,
+        $sokSerie,
+        $dateFra !== '' ? $dateFra : null,
+        $dateTil !== '' ? $dateTil : null,
+        $dateField
+    );
 } elseif ($valgtSerie !== null && $valgtSerie !== '') {
-    // Normal visning av serie
-    $fotoListe = primus_hent_foto_for_serie((string)$valgtSerie, $perSide, $offset);
-    $totaltAntall = primus_hent_totalt_antall_foto((string)$valgtSerie);
+    // Normal visning av serie (med/uten tidsfilter)
+    $fotoListe = primus_hent_foto_for_serie(
+        (string)$valgtSerie,
+        $perSide,
+        $offset,
+        $dateFra !== '' ? $dateFra : null,
+        $dateTil !== '' ? $dateTil : null,
+        $dateField
+    );
+    $totaltAntall = primus_hent_totalt_antall_foto(
+        (string)$valgtSerie,
+        $dateFra !== '' ? $dateFra : null,
+        $dateTil !== '' ? $dateTil : null,
+        $dateField
+    );
 }
 
 $totaltSider = $totaltAntall > 0 ? (int)ceil($totaltAntall / $perSide) : 0;
@@ -221,6 +319,85 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     </div>
 </div>
 
+<!-- Tidsfilter (collapsible) -->
+<div class="primus-date-filter">
+    <button type="button" class="btn-toggle-filter" id="btnToggleDateFilter">
+        📅 Tidsfilter
+        <?php if ($erTidsfilterAktivt): ?>
+            <span class="filter-active-badge">Aktiv</span>
+        <?php endif; ?>
+    </button>
+
+    <div class="date-filter-panel" id="dateFilterPanel"
+         style="display: <?= $erTidsfilterAktivt ? 'block' : 'none'; ?>">
+        <form method="get" class="date-filter-form">
+            <!-- Bevar serie/søk-parametere -->
+            <?php if ($valgtSerie !== null && $valgtSerie !== ''): ?>
+                <input type="hidden" name="serie" value="<?= h($valgtSerie); ?>">
+            <?php endif; ?>
+            <?php if ($erSok): ?>
+                <input type="hidden" name="sok_skipsnavn" value="<?= h($sokSkipsnavn); ?>">
+                <?php if ($sokAllSerier): ?>
+                    <input type="hidden" name="sok_alle_serier" value="1">
+                <?php endif; ?>
+            <?php endif; ?>
+
+            <div class="filter-row">
+                <div class="filter-field-selector">
+                    <label>
+                        <input type="radio" name="date_field" value="Oppdatert_Tid"
+                               <?= $dateField === 'Oppdatert_Tid' ? 'checked' : ''; ?>>
+                        Oppdatert tid
+                    </label>
+                    <label>
+                        <input type="radio" name="date_field" value="Opprettet_Tid"
+                               <?= $dateField === 'Opprettet_Tid' ? 'checked' : ''; ?>>
+                        Opprettet tid
+                    </label>
+                </div>
+
+                <div class="filter-date-inputs">
+                    <label for="dato_fra">Fra dato:</label>
+                    <input type="date" name="dato_fra" id="dato_fra"
+                           value="<?= h($dateFra); ?>">
+
+                    <label for="dato_til">Til dato:</label>
+                    <input type="date" name="dato_til" id="dato_til"
+                           value="<?= h($dateTil); ?>">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn-primary">Bruk filter</button>
+                    <a href="?<?= $erSok ? 'sok_skipsnavn=' . urlencode($sokSkipsnavn) . ($sokAllSerier ? '&sok_alle_serier=1' : '') : ''; ?>"
+                       class="btn-secondary">Nullstill</a>
+                </div>
+            </div>
+
+            <?php if ($erTidsfilterAktivt): ?>
+                <div class="filter-status">
+                    Viser records
+                    <?php if ($dateField === 'Oppdatert_Tid'): ?>oppdatert<?php else: ?>opprettet<?php endif; ?>
+                    <?php if ($dateFra !== '' && $dateTil !== ''): ?>
+                        mellom <strong><?= h($dateFra); ?></strong> og <strong><?= h($dateTil); ?></strong>
+                    <?php elseif ($dateFra !== ''): ?>
+                        på eller etter <strong><?= h($dateFra); ?></strong>
+                    <?php else: ?>
+                        før <strong><?= h($dateTil); ?></strong>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        </form>
+    </div>
+</div>
+
+<script>
+// Toggle filter panel
+document.getElementById('btnToggleDateFilter')?.addEventListener('click', function() {
+    const panel = document.getElementById('dateFilterPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+</script>
+
 <!-- Foto liste header med paging -->
 <div class="primus-foto-header">
     <?php if ($erSok): ?>
@@ -235,10 +412,28 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
     <?php if ($totaltSider > 1): ?>
         <?php
-        // Bygg paging URL med søkeparametere
-        $pagingBase = $erSok
-            ? '?sok_skipsnavn=' . urlencode($sokSkipsnavn) . ($sokAllSerier ? '&sok_alle_serier=1' : '') . '&side='
-            : '?side=';
+        // Bygg paging URL med alle parametere (søk + tidsfilter)
+        $pagingParams = [];
+
+        if ($erSok) {
+            $pagingParams['sok_skipsnavn'] = $sokSkipsnavn;
+            if ($sokAllSerier) {
+                $pagingParams['sok_alle_serier'] = '1';
+            }
+        }
+
+        if ($dateFra !== '') {
+            $pagingParams['dato_fra'] = $dateFra;
+        }
+        if ($dateTil !== '') {
+            $pagingParams['dato_til'] = $dateTil;
+        }
+        if ($erTidsfilterAktivt && $dateField !== 'Oppdatert_Tid') {
+            $pagingParams['date_field'] = $dateField;
+        }
+
+        $pagingParams['side'] = ''; // Placeholder for side-nummer
+        $pagingBase = '?' . http_build_query($pagingParams);
         ?>
         <div class="primus-paging-inline">
             <!-- Første side -->
@@ -313,8 +508,12 @@ require_once __DIR__ . '/../../includes/layout_start.php';
         ui_table_start([
             'Bildefil <span class="text-small-muted">(Dbl-click for details)</span>',
             'Motivbeskrivelse',
-            $isAdmin ? 'Overført <span class="text-small-muted">(klikk for å endre)</span>' : 'Overført',
-            '' // slett
+            'Fotografi',
+            'Aksesjon',
+            'Samling',
+            $isAdmin ? 'Overført <span class="text-small-muted">(Redigerbar)</span>' : 'Overført',
+            '', // slett
+            ''  // oppdatert_tid (uten header)
         ]);
 
         foreach ($fotoListe as $row) {
@@ -325,6 +524,21 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             echo '<td>' . h((string)$row['Bilde_Fil']) . '</td>';
             echo '<td>' . h((string)($row['MotivBeskr'] ?? '')) . '</td>';
 
+            // Fotografi column - readonly checkbox
+            echo '<td class="center-cell">';
+            echo '<input type="checkbox" class="readonly-checkbox" ' . (!empty($row['Fotografi']) ? 'checked' : '') . ' disabled>';
+            echo '</td>';
+
+            // Aksesjon column - readonly checkbox
+            echo '<td class="center-cell">';
+            echo '<input type="checkbox" class="readonly-checkbox" ' . (!empty($row['Aksesjon']) ? 'checked' : '') . ' disabled>';
+            echo '</td>';
+
+            // Samling column - readonly text input (10ch wide)
+            echo '<td>';
+            echo '<input type="text" class="readonly-textbox" value="' . h((string)($row['Samling'] ?? '')) . '" readonly>';
+            echo '</td>';
+
             // Overført column - checkbox for admin, text for regular users
             echo '<td class="transferred-cell">';
             if ($isAdmin) {
@@ -334,14 +548,32 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             }
             echo '</td>';
 
-            // Slett-knapp som POST-skjema med CSRF
+            // Kontrollert-knapp og Slett-knapp som POST-skjemaer med CSRF
             echo '<td class="nowrap">';
+            // Kontrollert-knapp
+            echo '<form method="post" class="inline-form-with-margin">';
+            echo csrf_field();
+            echo '<input type="hidden" name="action" value="marker_kontrollert_main">';
+            echo '<input type="hidden" name="foto_id" value="' . $fotoId . '">';
+            echo '<button type="submit" class="btn btn-sm btn-success">Kontrollert</button>';
+            echo '</form>';
+            // Slett-knapp
             echo '<form method="post" class="inline-form" onsubmit="return confirm(\'Slette dette bildet?\');">';
             echo csrf_field();
             echo '<input type="hidden" name="action" value="slett_foto">';
             echo '<input type="hidden" name="foto_id" value="' . $fotoId . '">';
             echo '<button type="submit" class="btn btn-sm btn-danger">Slett</button>';
             echo '</form>';
+            echo '</td>';
+
+            // Oppdatert_Tid column - very small text, no header
+            echo '<td class="timestamp-cell">';
+            $oppdatertTid = $row['Oppdatert_Tid'] ?? null;
+            if ($oppdatertTid) {
+                // Format: "2025-01-15 14:30" (kun dato og tid, ingen sekunder)
+                $dt = new DateTime($oppdatertTid);
+                echo '<span class="timestamp-text">' . h($dt->format('Y-m-d H:i')) . '</span>';
+            }
             echo '</td>';
 
             echo '</tr>';
@@ -573,6 +805,40 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     font-size: 0.875rem;
     color: #333;
     font-weight: 500;
+}
+
+/* Read-only fields styling */
+.center-cell {
+    text-align: center;
+}
+.readonly-checkbox {
+    cursor: default;
+    pointer-events: none;
+}
+.readonly-textbox {
+    width: 10ch;
+    padding: 0.25rem 0.4rem;
+    border: 1px solid #ced4da;
+    border-radius: 3px;
+    font-size: 0.875rem;
+    background-color: #f5f5f5;
+    color: #333;
+    cursor: default;
+}
+.readonly-textbox:focus {
+    outline: none;
+}
+
+/* Timestamp column styling */
+.timestamp-cell {
+    text-align: right;
+    padding-right: 0.5rem;
+    white-space: nowrap;
+}
+.timestamp-text {
+    font-size: 0.75rem;
+    color: #999;
+    font-family: 'Arial Narrow', Arial, sans-serif;
 }
 
 /* Export Dialog Modal */
