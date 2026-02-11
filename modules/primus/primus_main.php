@@ -306,16 +306,12 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
         <?php if ($isAdmin): ?>
         <button type="button" class="btn btn-primary btn-sm" onclick="showExportDialog()">
-            Eksporter til Excel
+            Motiv xlsx
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="showFotoeksExportDialog()">
+            Fotoeks xlsx
         </button>
         <?php endif; ?>
-
-        <a href="<?= base_url(); ?>manual/Brukermanual.pdf"
-           class="btn btn-info btn-sm"
-           download="NMMPrimus_Brukermanual.pdf"
-           title="Last ned brukermanual (PDF)">
-            📖 Brukermanual
-        </a>
     </div>
 </div>
 
@@ -327,6 +323,13 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             <span class="filter-active-badge">Aktiv</span>
         <?php endif; ?>
     </button>
+    <a href="<?= base_url(); ?>manual/Brukermanual.pdf"
+       class="btn btn-info btn-sm"
+       style="margin-left: 0.5rem;"
+       download="NMMPrimus_Brukermanual.pdf"
+       title="Last ned brukermanual (PDF)">
+        📖 Brukermanual
+    </a>
 
     <div class="date-filter-panel" id="dateFilterPanel"
          style="display: <?= $erTidsfilterAktivt ? 'block' : 'none'; ?>">
@@ -591,7 +594,7 @@ document.getElementById('btnToggleDateFilter')?.addEventListener('click', functi
 <div id="exportDialog" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Eksporter til Excel</h2>
+            <h2>Motiv xlsx</h2>
             <span class="close" onclick="closeExportDialog()">&times;</span>
         </div>
         <form method="post" action="export_excel.php" target="_blank" id="exportForm">
@@ -611,6 +614,36 @@ document.getElementById('btnToggleDateFilter')?.addEventListener('click', functi
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeExportDialog()">Avbryt</button>
+                <button type="submit" class="btn btn-primary">Eksporter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Fotoeks Export Dialog Modal -->
+<div id="fotoeksExportDialog" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Fotoeks xlsx</h2>
+            <span class="close" onclick="closeFotoeksExportDialog()">&times;</span>
+        </div>
+        <form method="post" action="export_fotoeks.php" target="_blank" id="fotoeksExportForm">
+            <?= csrf_field(); ?>
+            <input type="hidden" name="serie" value="<?= h($valgtSerie); ?>">
+            <div class="modal-body">
+                <p><strong>Serie:</strong> <?= h($valgtSerie) ?></p>
+                <div class="form-group">
+                    <label for="fotoeks_sernr_fra">SerNr fra (lav):</label>
+                    <input type="number" name="sernr_fra" id="fotoeks_sernr_fra" required min="1" max="999" class="w-100px">
+                </div>
+                <div class="form-group">
+                    <label for="fotoeks_sernr_til">SerNr til (høy):</label>
+                    <input type="number" name="sernr_til" id="fotoeks_sernr_til" required min="1" max="999" class="w-100px">
+                </div>
+                <p class="export-info" id="fotoeksExportInfo"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeFotoeksExportDialog()">Avbryt</button>
                 <button type="submit" class="btn btn-primary">Eksporter</button>
             </div>
         </form>
@@ -1141,6 +1174,110 @@ document.getElementById('exportForm').addEventListener('submit', function(e) {
     setTimeout(function() {
         window.location.href = 'export_confirm.php';
     }, 2000);
+});
+
+// Fotoeks export dialog functions
+function showFotoeksExportDialog() {
+    document.getElementById('fotoeksExportDialog').style.display = 'flex';
+    document.getElementById('fotoeks_sernr_fra').focus();
+}
+
+function closeFotoeksExportDialog() {
+    document.getElementById('fotoeksExportDialog').style.display = 'none';
+    document.getElementById('fotoeksExportForm').reset();
+    document.getElementById('fotoeksExportInfo').style.display = 'none';
+}
+
+document.getElementById('fotoeks_sernr_fra').addEventListener('input', function() {
+    var lavVerdi = parseInt(this.value);
+    if (!isNaN(lavVerdi)) {
+        document.getElementById('fotoeks_sernr_til').value = lavVerdi + 1;
+    }
+    validateFotoeksSerNrRange();
+});
+
+document.getElementById('fotoeks_sernr_til').addEventListener('input', validateFotoeksSerNrRange);
+
+function validateFotoeksSerNrRange() {
+    var lavVerdi = parseInt(document.getElementById('fotoeks_sernr_fra').value);
+    var hoeyVerdi = parseInt(document.getElementById('fotoeks_sernr_til').value);
+    var infoDiv = document.getElementById('fotoeksExportInfo');
+
+    if (!isNaN(lavVerdi) && !isNaN(hoeyVerdi)) {
+        if (hoeyVerdi < lavVerdi) {
+            infoDiv.textContent = 'FEIL: SerNr til (' + hoeyVerdi + ') må være større eller lik SerNr fra (' + lavVerdi + ')';
+            infoDiv.style.display = 'block';
+            infoDiv.style.background = '#ffe8e8';
+            infoDiv.style.borderColor = '#ff4444';
+            infoDiv.style.color = '#721c24';
+            return false;
+        }
+        var antall = hoeyVerdi - lavVerdi + 1;
+        if (antall > 0) {
+            infoDiv.textContent = 'Område: ' + antall + ' poster (kun foto med Transferred = Ja vil eksporteres)';
+            infoDiv.style.display = 'block';
+            infoDiv.style.color = '#333';
+            if (antall > 1000) {
+                infoDiv.style.background = '#ffe8e8';
+                infoDiv.style.borderColor = '#ff4444';
+                infoDiv.textContent += ' - FEIL: Maks 1000 poster tillatt!';
+                return false;
+            } else {
+                infoDiv.style.background = '#e8f4ff';
+                infoDiv.style.borderColor = '#3585fe';
+                return true;
+            }
+        } else {
+            infoDiv.style.display = 'none';
+        }
+    } else {
+        infoDiv.style.display = 'none';
+    }
+    return true;
+}
+
+document.getElementById('fotoeksExportDialog').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeFotoeksExportDialog();
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeFotoeksExportDialog();
+    }
+});
+
+document.getElementById('fotoeksExportForm').addEventListener('submit', function(e) {
+    var lavVerdi = parseInt(document.getElementById('fotoeks_sernr_fra').value);
+    var hoeyVerdi = parseInt(document.getElementById('fotoeks_sernr_til').value);
+
+    if (isNaN(lavVerdi) || isNaN(hoeyVerdi)) {
+        e.preventDefault();
+        alert('Vennligst fyll ut både SerNr fra og SerNr til');
+        return false;
+    }
+    if (lavVerdi < 1 || lavVerdi > 999) {
+        e.preventDefault();
+        alert('FEIL: SerNr fra må være mellom 1 og 999');
+        return false;
+    }
+    if (hoeyVerdi < 1 || hoeyVerdi > 999) {
+        e.preventDefault();
+        alert('FEIL: SerNr til må være mellom 1 og 999');
+        return false;
+    }
+    if (hoeyVerdi < lavVerdi) {
+        e.preventDefault();
+        alert('FEIL: SerNr til (' + hoeyVerdi + ') må være større eller lik SerNr fra (' + lavVerdi + ')');
+        return false;
+    }
+    var antall = hoeyVerdi - lavVerdi + 1;
+    if (antall > 1000) {
+        e.preventDefault();
+        alert('FEIL: Du kan ikke eksportere mer enn 1000 poster om gangen.\nValgt område: ' + antall + ' poster');
+        return false;
+    }
 });
 <?php endif; ?>
 </script>

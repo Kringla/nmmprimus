@@ -116,7 +116,6 @@ $headers = [
     'Status',
     'Tilstand',
     'FriKopi',
-    'Antall',
     'Fart_UUID',
     'Merknad'
 ];
@@ -148,7 +147,6 @@ foreach ($fotoListe as $row) {
         $row['Status'] ?? '',
         $row['Tilstand'] ?? '',
         bitToString($row['FriKopi']),
-        $row['Antall'] ?? '',
         $row['Fart_UUID'] ?? '',
         $row['Merknad'] ?? ''
     ];

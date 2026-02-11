@@ -615,6 +615,36 @@ function primus_hent_foto_for_export(string $serie, int $minSerNr, int $maxSerNr
 }
 
 /**
+ * Hent foto for Fotoeksemplar-eksport (export_fotoeks.php).
+ * Returnerer kun poster med Transferred = 1 (allerede overførte).
+ * Oppdaterer IKKE Transferred-feltet.
+ */
+function primus_hent_foto_for_fotoeks_export(string $serie, int $minSerNr, int $maxSerNr): array
+{
+    $db = db();
+    $stmt = $db->prepare("
+        SELECT
+            Bilde_Fil               AS ParentID,
+            CONCAT(Bilde_Fil, '.1') AS BildeId,
+            'Fotoeksemplar'      AS Objekttype,
+            Plassering,
+            PlassFriTekst,
+            '1'                  As Antall
+        FROM nmmfoto
+        WHERE Transferred = 1
+          AND LEFT(Bilde_Fil, 8) = :serie
+          AND SerNr BETWEEN :min_sernr AND :max_sernr
+        ORDER BY SerNr ASC
+    ");
+    $stmt->execute([
+        'serie'     => $serie,
+        'min_sernr' => $minSerNr,
+        'max_sernr' => $maxSerNr,
+    ]);
+    return $stmt->fetchAll();
+}
+
+/**
  * Marker flere foto som overført (Transferred = True).
  * Brukes etter eksport er bekreftet.
  */

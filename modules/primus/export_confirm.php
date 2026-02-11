@@ -105,7 +105,8 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     <div class="export-confirm-info">
         <p><strong>Eksporten er fullført og filen er lastet ned.</strong></p>
         <p>Hvis du bekrefter at eksporten var vellykket, vil alle de <?= h((string)$count) ?> eksporterte fotoene bli markert som "Overført" i databasen.</p>
-        <p><strong>Viktig:</strong> Kontroller at Excel-filen ble lastet ned korrekt før du bekrefter.</p>
+        <p><strong>Viktig:</strong> Kontroller at Excel-filen (.csv) ble lastet ned korrekt før du bekrefter.</p>
+        <p><strong>Viktig:</strong> Når du åpner filen kan du bli spurt om standard konvertering. Filen må IKKE konverteres, da forsvinner Leading Zeros som kan være en del av filnavnet.</p>
     </div>
 
     <div class="export-confirm-buttons">

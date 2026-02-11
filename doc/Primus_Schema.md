@@ -59,7 +59,6 @@ CREATE TABLE IF NOT EXISTS `nmmfoto` (
   `Status` varchar(255) DEFAULT 'Original',
   `Tilstand` varchar(255) DEFAULT 'God',
   `FriKopi` tinyint(1) DEFAULT NULL,
-  `Antall` smallint(2) DEFAULT NULL,
   `UUID` varchar(255) NOT NULL,
   `Transferred` tinyint(1) DEFAULT NULL,
   `Merknad` varchar(255) DEFAULT NULL,
