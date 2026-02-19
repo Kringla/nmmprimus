@@ -65,18 +65,21 @@ Bygge tabellen `nmmfoto` ved å koble:
 
 ### Hendelsesmodus (iCh)
 
-Radioknapper (1-6) som styrer:
+Radioknapper (1-4) som styrer:
 - Hvilke felt som er redigerbare
 - Visuell markering (grønn/rød ramme)
 - Lagres i session
 
 **iCh-modus:**
-- **1:** Ingen hendelse (ingen foto/samling-felt, feltet `Frikopi` verdi = 0)
-- **2:** Fotohendelse (foto-felt aktive, feltet `Frikopi` verdi = 0)
-- **3:** Samlingshendelse (samling-felt aktive, feltet `Frikopi` verdi = 1)
-- **4:** Foto + Samling (både foto-felt og samling-felt aktive, feltet `Frikopi` verdi = 1)
-- **5:** (reservert)
-- **6:** Fullstendig (både foto-felt og samling-felt aktive, feltet `Frikopi` verdi = 1)
+- **1:** Ingen hendelse (ingen foto- og samling-felt aktive, ingen default verdier vises, feltet `Frikopi` verdi = 1, feltet `Aksesjon` verdi = 0, feltet `Fotografi` verdi = 0)
+- **2:** Fotohendelse (foto-felt aktive, feltet `Frikopi` verdi = 1, feltet `Aksesjon` verdi = 0, feltet `Fotografi` verdi = 1)
+  - Default verdi `Fotograf` = "10F:" vises. Skal ikke lagres hvis ikke etterfulgt av minst 2 karakterer. Eksempel: Verdi "10F: BK" lagres, verdi "10F:" alene lagres ikke.
+- **3:** Samlingshendelse (`Samling`-felt aktivt, feltet `Frikopi` verdi = 0, feltet `Aksesjon` verdi = 1, feltet `Fotografi` verdi = 0)
+  - `Samling`-felt er rullefelt med tre verdier (i sorteringsrekkefølge) "C2-Johnsen, Per-Erik", "C2-Gjersøe, Georg" og "C2-".
+  - Default verdi `Samling` = "C2-Johnsen, Per-Erik" som vises. Verdien "C2-" skal ikke lagres hvis ikke etterfulgt av minst 2 karakterer. Eksempel: Verdi "C2-BK" lagres, verdi "C2-" alene lagres ikke.
+- **4:** Foto + Samling (både foto-felt og samling-felt aktive, feltet `Frikopi` verdi = 0, feltet `Aksesjon` verdi = 1, feltet `Fotografi` verdi = 1)
+  - Defaultverdier og lagringsregler som for både iCh-modus 2 og 3.
+
 
 ### Kandidatvalg 
 
@@ -92,7 +95,7 @@ Ved klikk på rad i venstre panel:
   - `nmmxou` → MotivKriteria
   - `nmmxudk` → (klassifikasjon)
   - `nmmxhendelse` → Hendelse
-I H1-modus skal bruker bekrefte valget før felete oppdateres.
+I H1-modus skal bruker bekrefte valget før feltet oppdateres.
 
 ### Valg av  `SerNr` 
 

@@ -66,6 +66,13 @@ function foto_avledede_verdier(int $iCh): array
     $verdier['Fotografi'] = in_array($iCh, [2, 4, 6], true) ? 1 : 0;
 
     // ---------------------------------------------
+    // Access: Fotograf default "10F:" ved iCh 2,4,6
+    // ---------------------------------------------
+    if (in_array($iCh, [2, 4, 6], true)) {
+        $verdier['Fotograf'] = '10F:';
+    }
+
+    // ---------------------------------------------
     // Access: Aksesjon / FriKopi / Samling (auto-verdier basert på iCh)
     // iCh = 3,4,6
     // ---------------------------------------------

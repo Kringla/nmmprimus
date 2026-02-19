@@ -158,10 +158,6 @@
                             if (erAktiv) {
                                 el.style.borderColor = '#28a745';
                                 el.style.backgroundColor = '';
-                                // Fotograf: default '10F:' kun ved brukerendring og tomt felt
-                                if (erBrukerEndring && feltId === 'Fotograf' && !el.value.trim()) {
-                                    el.value = '10F:';
-                                }
                             } else {
                                 el.style.borderColor = '#dc3545';
                                 el.style.backgroundColor = '#ffe6e6';
@@ -186,24 +182,7 @@
                     // Ved sidelast vises DB-verdier uendret
                     if (!erBrukerEndring) return;
 
-                    // Fyll inn verdier
-                    for (var feltNavn in verdier) {
-                        if (feltNavn === 'Samling') {
-                            var samlingEl = document.getElementById('Samling');
-                            if (samlingEl && (!samlingEl.value || samlingEl.value.trim() === '')) {
-                                setVal(feltNavn, verdier[feltNavn]);
-                            }
-                        } else {
-                            var verdierEl = document.getElementById(feltNavn);
-                            if (verdierEl && verdierEl.type === 'checkbox') {
-                                verdierEl.checked = !!verdier[feltNavn];
-                            } else {
-                                setVal(feltNavn, verdier[feltNavn]);
-                            }
-                        }
-                    }
-
-                    // Tøm felt som skal tømmes
+                    // 1) Tøm felt som skal tømmes FØRST
                     skalTommes.forEach(function(feltId) {
                         var tEl = document.getElementById(feltId);
                         if (tEl && tEl.type === 'checkbox') {
@@ -212,6 +191,21 @@
                             setVal(feltId, '');
                         }
                     });
+
+                    // 2) Deretter fyll inn default-verdier
+                    for (var feltNavn in verdier) {
+                        var verdierEl = document.getElementById(feltNavn);
+                        if (!verdierEl) continue;
+
+                        if (verdierEl.type === 'checkbox') {
+                            verdierEl.checked = !!verdier[feltNavn];
+                        } else {
+                            // Sett default kun hvis feltet er tomt (etter tømming)
+                            if (!verdierEl.value || verdierEl.value.trim() === '') {
+                                setVal(feltNavn, verdier[feltNavn]);
+                            }
+                        }
+                    }
                 })
                 .catch(function(err){
                     console.error('Feil ved oppdatering av foto state:', err);

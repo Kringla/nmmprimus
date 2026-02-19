@@ -576,6 +576,22 @@ if (is_post() && ($_POST['action'] ?? '') !== 'kopier_foto') {
     // Fjern Samling_suffix fra data (skal ikke lagres som eget felt i database)
     unset($data['Samling_suffix']);
 
+    // Fotograf: "10F:" alene (eller med <2 ekstra tegn) skal ikke lagres
+    if (isset($data['Fotograf'])) {
+        $fotograf = trim((string)$data['Fotograf']);
+        if (str_starts_with($fotograf, '10F:') && strlen(trim(substr($fotograf, 4))) < 2) {
+            $data['Fotograf'] = '';
+        }
+    }
+
+    // Samling: "C2-" alene (eller med <2 ekstra tegn) skal ikke lagres
+    if (isset($data['Samling'])) {
+        $samling = trim((string)$data['Samling']);
+        if (str_starts_with($samling, 'C2-') && strlen(trim(substr($samling, 3))) < 2) {
+            $data['Samling'] = '';
+        }
+    }
+
     // Sjekk om dette er en ny rad eller eksisterende
     if ($nyRad || $fotoId === null) {
         // NY RAD: Opprett i database (INSERT)
