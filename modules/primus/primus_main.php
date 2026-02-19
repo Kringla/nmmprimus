@@ -173,6 +173,15 @@ if ($dateFra !== '' && $dateTil !== '' && $dateFra > $dateTil) {
 $erTidsfilterAktivt = ($dateFra !== '' || $dateTil !== '');
 
 // --------------------------------------------------
+// Sorteringsrekkefølge (huskes i session)
+// --------------------------------------------------
+$sortRaw = trim($_GET['sort'] ?? '');
+if (in_array($sortRaw, ['ASC', 'DESC'], true)) {
+    $_SESSION['primus_sort_order'] = $sortRaw;
+}
+$sortOrder = $_SESSION['primus_sort_order'] ?? 'DESC';
+
+// --------------------------------------------------
 // Paging
 // --------------------------------------------------
 $side = filter_input(INPUT_GET, 'side', FILTER_VALIDATE_INT) ?: 1;
@@ -198,7 +207,8 @@ if ($erSok) {
         $offset,
         $dateFra !== '' ? $dateFra : null,
         $dateTil !== '' ? $dateTil : null,
-        $dateField
+        $dateField,
+        $sortOrder
     );
     $totaltAntall = primus_sok_foto_etter_skipsnavn_antall(
         $sokSkipsnavn,
@@ -215,7 +225,8 @@ if ($erSok) {
         $offset,
         $dateFra !== '' ? $dateFra : null,
         $dateTil !== '' ? $dateTil : null,
-        $dateField
+        $dateField,
+        $sortOrder
     );
     $totaltAntall = primus_hent_totalt_antall_foto(
         (string)$valgtSerie,
@@ -231,10 +242,9 @@ $totaltSider = $totaltAntall > 0 ? (int)ceil($totaltAntall / $perSide) : 0;
 $baseUrlJs = base_url_js();
 
 $pageTitle = 'NMMPrimus – Landingsside';
+$pageHideSubtitleBar = true;
 require_once __DIR__ . '/../../includes/layout_start.php';
 ?>
-
-<h1>Foto hittil koblet til KulturNav</h1>
 
 <div class="primus-main-page">
 
@@ -402,6 +412,32 @@ document.getElementById('btnToggleDateFilter')?.addEventListener('click', functi
 </script>
 
 <!-- Foto liste header med paging -->
+<?php
+// Bygg URL for sort-toggle (bevar alle gjeldende parametere)
+$sortToggleParams = [];
+if ($valgtSerie !== null && $valgtSerie !== '') {
+    $sortToggleParams['serie'] = $valgtSerie;
+}
+if ($erSok) {
+    $sortToggleParams['sok_skipsnavn'] = $sokSkipsnavn;
+    if ($sokAllSerier) {
+        $sortToggleParams['sok_alle_serier'] = '1';
+    }
+}
+if ($dateFra !== '') {
+    $sortToggleParams['dato_fra'] = $dateFra;
+}
+if ($dateTil !== '') {
+    $sortToggleParams['dato_til'] = $dateTil;
+}
+if ($erTidsfilterAktivt && $dateField !== 'Oppdatert_Tid') {
+    $sortToggleParams['date_field'] = $dateField;
+}
+$sortToggleParams['sort'] = ($sortOrder === 'DESC') ? 'ASC' : 'DESC';
+$sortToggleUrl = 'primus_main.php?' . http_build_query($sortToggleParams);
+$sortToggleLabel = ($sortOrder === 'DESC') ? '↑ Laveste først' : '↓ Høyeste først';
+$sortToggleTitle = ($sortOrder === 'DESC') ? 'Vis laveste Bilde_Fil øverst' : 'Vis høyeste Bilde_Fil øverst';
+?>
 <div class="primus-foto-header">
     <?php if ($erSok): ?>
         <span class="primus-foto-title">
@@ -412,6 +448,10 @@ document.getElementById('btnToggleDateFilter')?.addEventListener('click', functi
     <?php else: ?>
         <span class="primus-foto-title">Foto i valgt serie</span>
     <?php endif; ?>
+
+    <a href="<?= h($sortToggleUrl); ?>" class="btn btn-secondary btn-sm sort-toggle-btn" title="<?= h($sortToggleTitle); ?>">
+        <?= h($sortToggleLabel); ?>
+    </a>
 
     <?php if ($totaltSider > 1): ?>
         <?php
@@ -802,10 +842,20 @@ document.getElementById('btnToggleDateFilter')?.addEventListener('click', functi
 }
 /* PRIMUS MAIN - reduser radavstand og gi scrolling */
 .primus-main-scroll {
-    max-height: 620px;
+    height: calc(100vh - 290px);
     overflow-y: auto;
     border: 1px solid #dbe3ef;
     border-radius: 4px;
+}
+/* Enda mindre knapper i tabellen */
+.primus-main-scroll .btn-sm {
+    padding: 0.1rem 0.35rem;
+    font-size: 0.78rem;
+}
+/* Sort-toggle knapp i foto-header */
+.sort-toggle-btn {
+    margin-left: auto;
+    white-space: nowrap;
 }
 .primus-main-scroll table {
     width: 100%;

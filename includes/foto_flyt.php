@@ -45,7 +45,7 @@ function foto_felt_tilstand(int $iCh): array
         $felter['FotoSted']   = true;
     }
 
-    if ($iCh === 3) {
+    if (in_array($iCh, [3, 4], true)) {
         $felter['FriKopi'] = false;
     }
 

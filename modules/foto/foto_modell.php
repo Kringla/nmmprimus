@@ -89,12 +89,13 @@ function foto_lagre(PDO $db, array $data): int
         'Merknad',
         'Svarthvitt',
         'FriKopi',
+        'Aksesjon',       // Server-beregnet fra iCh, alltid tillatt
+        'Fotografi',      // Server-beregnet fra iCh, alltid tillatt
         'Antall'
     ];
 
     // Felter styrt av iCh
     $fotoFelter = [
-        'Fotografi',      // Checkbox: Om dette er et fotografi
         'Fotograf',
         'FotoFirma',
         'FotoTidFra',
@@ -103,7 +104,6 @@ function foto_lagre(PDO $db, array $data): int
     ];
 
     $samlingFelter = [
-        'Aksesjon',       // Checkbox: Om dette er aksesjonert
         'Samling'
     ];
 

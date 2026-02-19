@@ -84,10 +84,12 @@ function primus_hent_foto_for_serie(
     int $offset = 0,
     ?string $dateFra = null,
     ?string $dateTil = null,
-    string $dateField = 'Oppdatert_Tid'
+    string $dateField = 'Oppdatert_Tid',
+    string $sortOrder = 'DESC'
 ): array
 {
     $db = db();
+    $sortOrder = ($sortOrder === 'ASC') ? 'ASC' : 'DESC';
 
     // Bygg WHERE-klausul dynamisk
     $where = "WHERE LEFT(Bilde_Fil, 8) = :serie";
@@ -109,7 +111,7 @@ function primus_hent_foto_for_serie(
         SELECT Foto_ID, Bilde_Fil, MotivBeskr, Transferred, Fotografi, Aksesjon, Samling, Oppdatert_Tid
         FROM nmmfoto
         $where
-        ORDER BY Bilde_Fil DESC
+        ORDER BY Bilde_Fil $sortOrder
         LIMIT :limit OFFSET :offset
     ";
 
@@ -179,10 +181,12 @@ function primus_sok_foto_etter_skipsnavn(
     int $offset = 0,
     ?string $dateFra = null,
     ?string $dateTil = null,
-    string $dateField = 'Oppdatert_Tid'
+    string $dateField = 'Oppdatert_Tid',
+    string $sortOrder = 'DESC'
 ): array
 {
     $db = db();
+    $sortOrder = ($sortOrder === 'ASC') ? 'ASC' : 'DESC';
 
     $sql = "
         SELECT f.Foto_ID, f.Bilde_Fil, f.MotivBeskr, f.Transferred, f.Fotografi, f.Aksesjon, f.Samling, f.Oppdatert_Tid
@@ -210,7 +214,7 @@ function primus_sok_foto_etter_skipsnavn(
     }
 
     $sql .= "
-        ORDER BY f.Bilde_Fil DESC
+        ORDER BY f.Bilde_Fil $sortOrder
         LIMIT :limit OFFSET :offset
     ";
 
@@ -690,9 +694,10 @@ function primus_toggle_transferred(int $fotoId): bool
  * @param int $perSide Antall rader per side (standard 20)
  * @return int Sidenummer (1-basert)
  */
-function primus_finn_side_for_foto(int $fotoId, int $perSide = 20): int
+function primus_finn_side_for_foto(int $fotoId, int $perSide = 20, string $sortOrder = 'DESC'): int
 {
     $db = db();
+    $sortOrder = ($sortOrder === 'ASC') ? 'ASC' : 'DESC';
 
     // Hent Bilde_Fil for det gitte fotoet
     $stmt = $db->prepare("
@@ -704,35 +709,35 @@ function primus_finn_side_for_foto(int $fotoId, int $perSide = 20): int
     $foto = $stmt->fetch();
 
     if (!$foto) {
-        return 1; // Hvis foto ikke finnes, returner side 1
+        return 1;
     }
 
     $bildeFil = (string)$foto['Bilde_Fil'];
     if (strlen($bildeFil) < 8) {
-        return 1; // Ugyldig Bilde_Fil
+        return 1;
     }
 
     $serie = substr($bildeFil, 0, 8);
 
-    // Tell antall foto i serien som kommer ETTER dette fotoet
-    // (siden vi sorterer DESC på Bilde_Fil)
+    // Tell antall foto i serien som kommer FØR dette fotoet i valgt sorteringsretning.
+    // DESC: foto med høyere Bilde_Fil kommer først → tell de med Bilde_Fil > :bilde_fil
+    // ASC:  foto med lavere Bilde_Fil kommer først → tell de med Bilde_Fil < :bilde_fil
+    $operator = ($sortOrder === 'ASC') ? '<' : '>';
+
     $stmt = $db->prepare("
         SELECT COUNT(*) as antall
         FROM nmmfoto
         WHERE LEFT(Bilde_Fil, 8) = :serie
-          AND Bilde_Fil > :bilde_fil
+          AND Bilde_Fil $operator :bilde_fil
     ");
     $stmt->execute([
-        'serie' => $serie,
-        'bilde_fil' => $bildeFil
+        'serie'     => $serie,
+        'bilde_fil' => $bildeFil,
     ]);
     $result = $stmt->fetch();
-    $antallEtter = (int)($result['antall'] ?? 0);
+    $antallFor = (int)($result['antall'] ?? 0);
 
-    // Beregn sidenummer (1-basert)
-    // Posisjon i listen = antall foto etter + 1 (0-basert = antallEtter)
-    // Sidenummer = ceil((posisjon) / perSide)
-    $posisjon = $antallEtter + 1;
+    $posisjon = $antallFor + 1;
     $side = (int)ceil($posisjon / $perSide);
 
     return max(1, $side);

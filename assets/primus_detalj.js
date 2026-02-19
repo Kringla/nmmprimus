@@ -111,7 +111,8 @@
 
         // ------------------- iCh → foto_state -------------------
         function initIChState() {
-            function oppdaterFotoState(){
+            // erBrukerEndring: true når bruker bytter iCh, false ved sidelast
+            function oppdaterFotoState(erBrukerEndring){
                 var valgt = document.querySelector('input[name="iCh"]:checked');
                 if(!valgt) return;
 
@@ -122,7 +123,7 @@
                     body:'primus_iCh=' + encodeURIComponent(valgt.value)
                 }).catch(function(){});
 
-                // Hent felt-tilstander og verdier fra foto_state.php
+                // Hent felt-tilstander fra foto_state.php
                 fetch(baseUrl + '/modules/foto/api/foto_state.php', {
                     method:'POST',
                     headers:{'Content-Type':'application/x-www-form-urlencoded'},
@@ -157,6 +158,10 @@
                             if (erAktiv) {
                                 el.style.borderColor = '#28a745';
                                 el.style.backgroundColor = '';
+                                // Fotograf: default '10F:' kun ved brukerendring og tomt felt
+                                if (erBrukerEndring && feltId === 'Fotograf' && !el.value.trim()) {
+                                    el.value = '10F:';
+                                }
                             } else {
                                 el.style.borderColor = '#dc3545';
                                 el.style.backgroundColor = '#ffe6e6';
@@ -172,27 +177,40 @@
                             } else {
                                 el.style.borderColor = '#dc3545';
                                 el.style.backgroundColor = '#ffe6e6';
-                                el.style.pointerEvents = 'none'; // Hindre klikk, men send data i POST
+                                el.style.pointerEvents = 'none';
                             }
                         }
                     }
 
+                    // Verdier og tømming: KUN ved brukerendring av iCh
+                    // Ved sidelast vises DB-verdier uendret
+                    if (!erBrukerEndring) return;
+
                     // Fyll inn verdier
                     for (var feltNavn in verdier) {
-                        // Spesiell håndtering for Samling: kun sett default hvis tom
                         if (feltNavn === 'Samling') {
                             var samlingEl = document.getElementById('Samling');
                             if (samlingEl && (!samlingEl.value || samlingEl.value.trim() === '')) {
                                 setVal(feltNavn, verdier[feltNavn]);
                             }
                         } else {
-                            setVal(feltNavn, verdier[feltNavn]);
+                            var verdierEl = document.getElementById(feltNavn);
+                            if (verdierEl && verdierEl.type === 'checkbox') {
+                                verdierEl.checked = !!verdier[feltNavn];
+                            } else {
+                                setVal(feltNavn, verdier[feltNavn]);
+                            }
                         }
                     }
 
                     // Tøm felt som skal tømmes
                     skalTommes.forEach(function(feltId) {
-                        setVal(feltId, '');
+                        var tEl = document.getElementById(feltId);
+                        if (tEl && tEl.type === 'checkbox') {
+                            tEl.checked = false;
+                        } else {
+                            setVal(feltId, '');
+                        }
                     });
                 })
                 .catch(function(err){
@@ -200,11 +218,12 @@
                 });
             }
 
-            // Kjør oppdaterFotoState ved sideinnlasting for å sette initiale tilstander
-            oppdaterFotoState();
+            // Sidelast: kun visuell styling, ikke endre verdier
+            oppdaterFotoState(false);
 
+            // Brukerendring: styling + oppdater verdier/tøm felt
             document.querySelectorAll('input[name="iCh"]').forEach(function(rb){
-                rb.addEventListener('change', oppdaterFotoState);
+                rb.addEventListener('change', function() { oppdaterFotoState(true); });
             });
         }
 

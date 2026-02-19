@@ -138,6 +138,11 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
 require_once __DIR__ . '/../../includes/layout_slutt.php';
 ```
+## CSS-retningslinjer
+
+- **Unngå `!important`**: Med mindre helt nødvendig
+- **Desktop-first**: 1920x1200 primær, andre PC-størrelser støttes
+- **Mobildesign**: IKKE prioritert
 
 ### Sikkerhet
 

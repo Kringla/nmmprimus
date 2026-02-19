@@ -50,11 +50,13 @@ if (!isset($pageTitle)) {
             </nav>
         </div>
     </div>
+    <?php if (empty($pageHideSubtitleBar)): ?>
     <div class="site-header-bottom">
         <div class="container site-header-bottom-inner">
             <div class="site-lockup"><?= h($pageTitle); ?></div>
         </div>
     </div>
+    <?php endif; ?>
 </header>
 
 <main class="page-main">

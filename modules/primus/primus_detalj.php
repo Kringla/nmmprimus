@@ -202,7 +202,7 @@ if (!isset($foto['Svarthvitt']) || $foto['Svarthvitt'] === '' || $foto['Svarthvi
     $foto['Svarthvitt'] = $svarthvittValg[0];
 }
 
-$samlingValg = ['C2-Johnsen, Per-Erik', 'C2-Gjersøe, Georg', 'C2-'];
+$samlingValg = ['', 'C2-Johnsen, Per-Erik', 'C2-Gjersøe, Georg', 'C2-'];
 
 // Split Samling-verdi: hvis ikke en av de faste valgene, ekstrahér suffiks
 $samlingVerdi = (string)($foto['Samling'] ?? '');
@@ -228,15 +228,22 @@ if ($h2) {
         $iCh = (int)$_POST['iCh'];
         $_SESSION['primus_iCh'] = $iCh;
     } else {
-        // Eksisterende rad: Beregn iCh fra Aksesjon/Fotografi (master-kilde)
-        $aksesjon = isset($foto['Aksesjon']) ? (int)$foto['Aksesjon'] : 0;
-        $fotografi = isset($foto['Fotografi']) ? (int)$foto['Fotografi'] : 0;
+        // Eksisterende rad: Beregn iCh fra faktiske feltverdier
+        // (Aksesjon/Fotografi-flagg kan være utdaterte i eldre rader)
+        $harFoto = (
+            trim((string)($foto['Fotograf'] ?? '')) !== '' ||
+            trim((string)($foto['FotoFirma'] ?? '')) !== '' ||
+            trim((string)($foto['FotoTidFra'] ?? '')) !== '' ||
+            trim((string)($foto['FotoTidTil'] ?? '')) !== '' ||
+            trim((string)($foto['FotoSted'] ?? '')) !== ''
+        );
+        $harSamling = trim((string)($foto['Samling'] ?? '')) !== '';
 
-        if ($aksesjon === 1 && $fotografi === 1) {
+        if ($harSamling && $harFoto) {
             $iCh = 4;  // Foto + Samling
-        } elseif ($aksesjon === 1 && $fotografi === 0) {
+        } elseif ($harSamling) {
             $iCh = 3;  // Samlingshendelse
-        } elseif ($aksesjon === 0 && $fotografi === 1) {
+        } elseif ($harFoto) {
             $iCh = 2;  // Fotohendelse
         } else {
             $iCh = 1;  // Kun hendelse
@@ -486,7 +493,7 @@ if (is_post() && ($_POST['action'] ?? '') === 'marker_kontrollert') {
     $stmt->execute(['foto_id' => $fotoId]);
 
     // Redirect tilbake til hovedsiden (samme logikk som Tilbake-knappen)
-    $side = primus_finn_side_for_foto($fotoId);
+    $side = primus_finn_side_for_foto($fotoId, 20, $_SESSION['primus_sort_order'] ?? 'DESC');
     $tilbakeUrl = 'primus_main.php?side=' . $side . '#foto-' . $fotoId;
     redirect($tilbakeUrl);
 }
@@ -547,14 +554,6 @@ if (is_post() && ($_POST['action'] ?? '') !== 'kopier_foto') {
         }
     }
 
-    // Checkbox-håndtering: hvis ikke i POST, sett til 0 (ikke krysset av)
-    $checkboxFelter = ['FriKopi'];
-    foreach ($checkboxFelter as $chk) {
-        if (!isset($data[$chk])) {
-            $data[$chk] = 0;
-        }
-    }
-
     // Aksesjon: Sett automatisk basert på iCh (ikke bruker-redigerbart)
     // iCh 3, 4 → Aksesjon = 1, ellers 0
     $data['Aksesjon'] = in_array($iCh, [3, 4], true) ? 1 : 0;
@@ -562,6 +561,10 @@ if (is_post() && ($_POST['action'] ?? '') !== 'kopier_foto') {
     // Fotografi: Sett automatisk basert på iCh (ikke bruker-redigerbart)
     // iCh 2, 4 → Fotografi = 1, ellers 0
     $data['Fotografi'] = in_array($iCh, [2, 4], true) ? 1 : 0;
+
+    // FriKopi: Sett automatisk basert på iCh (ikke bruker-redigerbart)
+    // iCh 3, 4 → FriKopi = 0, ellers 1
+    $data['FriKopi'] = in_array($iCh, [3, 4], true) ? 0 : 1;
 
     // Samling-suffiks: Kombiner "C2-" + suffiks hvis nødvendig
     if (isset($data['Samling']) && $data['Samling'] === 'C2-') {
@@ -608,7 +611,7 @@ if (is_post() && ($_POST['action'] ?? '') !== 'kopier_foto') {
             redirect('../fartoy/fartoy_velg.php?Foto_ID=' . (int)$nyFotoId . '&ret=' . rawurlencode($retUrl) . '&mode=add_avbildet');
         } else {
             // Normal flyt: gå tilbake til hovedsiden
-            $side = primus_finn_side_for_foto($nyFotoId);
+            $side = primus_finn_side_for_foto($nyFotoId, 20, $_SESSION['primus_sort_order'] ?? 'DESC');
             redirect('primus_main.php?side=' . $side);
         }
     } else {
@@ -628,7 +631,7 @@ if (is_post() && ($_POST['action'] ?? '') !== 'kopier_foto') {
         }
 
         // Finn sidenummer og redirect til riktig side med anchor til raden
-        $side = primus_finn_side_for_foto($fotoId);
+        $side = primus_finn_side_for_foto($fotoId, 20, $_SESSION['primus_sort_order'] ?? 'DESC');
         redirect('primus_main.php?side=' . $side . '#foto-' . $fotoId);
     }
 }
@@ -687,7 +690,7 @@ if ($aktNmmId > 0) {
 if ($nyRad) {
     $tilbakeUrl = 'primus_main.php?avbryt_ny=1';
 } else {
-    $side = primus_finn_side_for_foto($fotoId);
+    $side = primus_finn_side_for_foto($fotoId, 20, $_SESSION['primus_sort_order'] ?? 'DESC');
     $tilbakeUrl = 'primus_main.php?side=' . $side . '#foto-' . $fotoId;
 }
 
@@ -988,104 +991,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
     </div>
 </div>
 
-<script>
-(function(){
-    var baseUrl = <?= $baseUrlJs ?>;
-
-    // ---------------- Tabs ----------------
-    document.querySelectorAll('.primus-tab').forEach(function(tab) {
-        tab.addEventListener('click', function () {
-            var valgt = this.dataset.tab;
-            if (!valgt) return;
-
-            document.querySelectorAll('.primus-tab')
-                .forEach(function(t) { t.classList.toggle('is-active', t === tab); });
-
-            document.querySelectorAll('.primus-pane')
-                .forEach(function(p) { p.classList.toggle('is-active', p.id === valgt); });
-
-            fetch(baseUrl + '/modules/primus/api/sett_session.php', {
-                method: 'POST',
-                headers: {'Content-Type':'application/x-www-form-urlencoded'},
-                body: 'primus_tab=' + encodeURIComponent(valgt)
-            }).catch(function(){});
-        });
-    });
-
-    // Kandidatsøk håndteres av primus_detalj.js (initKandidatSok)
-
-    // ---------------- iCh → foto_state ----------------
-    function oppdaterFotoState(){
-        var valgt = document.querySelector('input[name="iCh"]:checked');
-        if(!valgt) return;
-
-        fetch(baseUrl + '/modules/primus/api/sett_session.php', {
-            method:'POST',
-            headers:{'Content-Type':'application/x-www-form-urlencoded'},
-            body:'primus_iCh=' + encodeURIComponent(valgt.value)
-        }).catch(function(){});
-
-        fetch(baseUrl + '/modules/foto/api/foto_state.php', {
-            method:'POST',
-            headers:{'Content-Type':'application/x-www-form-urlencoded'},
-            body:'fmeHendelse=' + encodeURIComponent(valgt.value)
-        })
-        .then(function(r) { return r.ok ? r.json() : null; })
-        .then(function(json) {
-            if(!json || !json.ok || !json.data || !json.data.felter) return;
-
-            Object.keys(json.data.felter).forEach(function(id) {
-                var el = document.getElementById(id);
-                if(!el) return;
-                el.disabled = false;
-                el.removeAttribute('data-foto-state');
-            });
-
-            Object.keys(json.data.felter).forEach(function(id) {
-                var enabled = json.data.felter[id];
-                var el = document.getElementById(id);
-                if(!el) return;
-
-                el.disabled = !enabled;
-                el.dataset.fotoState = enabled ? 'aktiv' : 'inaktiv';
-
-                if(!enabled){
-                    if(el.type === 'checkbox' || el.type === 'radio') {
-                        el.checked = false;
-                    } else {
-                        el.value = '';
-                    }
-                } else if(id === 'Fotograf' && !el.value.trim()) {
-                    el.value = '10F:';
-                }
-            });
-
-            // Apply verdier (field values like Hendelse)
-            if(json.data.verdier) {
-                Object.keys(json.data.verdier).forEach(function(id) {
-                    var el = document.getElementById(id);
-                    if(!el) return;
-
-                    // Samling: Only set if currently empty (respect "kun hvis tom" comment in foto_flyt.php)
-                    if(id === 'Samling' && el.value && el.value.trim() !== '') {
-                        return; // Skip - keep existing value
-                    }
-
-                    el.value = json.data.verdier[id] || '';
-                });
-            }
-        })
-        .catch(function(){});
-    }
-
-    document.querySelectorAll('input[name="iCh"]')
-        .forEach(function(r) { r.addEventListener('change', oppdaterFotoState); });
-
-    oppdaterFotoState();
-
-    // Kandidatklikk håndteres av primus_detalj.js (initKandidatRadKlikk med event delegation)
-})();
-</script>
+<!-- Alt håndteres av primus_detalj.js (initTabs, initIChState, initKandidatSok, initKandidatRadKlikk) -->
 
 <script>
 /* ---------------------------------------------

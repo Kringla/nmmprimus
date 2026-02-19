@@ -94,7 +94,7 @@ $output = fopen('php://output', 'w');
 
 // Header row
 $headers = [
-    'BildeId',
+    'BildeID',
     'URL_Bane',
     'MotivBeskr',
     'MotivType',
