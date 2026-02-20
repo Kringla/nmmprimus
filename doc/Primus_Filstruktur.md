@@ -54,7 +54,7 @@ nmmprimus/
  │       ├─ primus_main.php         # Landingsside (liste over foto)
  │       ├─ primus_detalj.php       # Detaljvisning og redigering av foto
  │       ├─ primus_modell.php       # Datamodell for Primus (CRUD, kandidater, eksport)
- │       ├─ export_excel.php        # Excel-eksport (admin only)
+ │       ├─ export_motiv.php        # Excel-eksport (admin only)
  │       ├─ export_confirm.php      # Bekreftelsesside etter eksport
  │       └─ api/                    # API-endepunkter
  │           ├─ kandidat_data.php   # Hent kandidatdata (skip-info)
@@ -142,7 +142,7 @@ nmmprimus/
   - Auto-generering av URL_Bane
   - JavaScript: `assets/primus_detalj.js`
 
-- **export_excel.php**: Excel-eksport (CSV-format)
+- **export_motiv.php**: Excel-eksport (CSV-format)
   - Kun for admin
   - Eksporterer foto med Transferred = False
   - Filtrering på Serie og SerNr-område

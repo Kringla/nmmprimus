@@ -54,7 +54,7 @@ nmmprimus/
 │   │   ├── primus_main.php         # Landingsside
 │   │   ├── primus_detalj.php       # Detaljvisning
 │   │   ├── primus_modell.php       # Datamodell
-│   │   ├── export_excel.php        # CSV-eksport (admin)
+│   │   ├── export_motiv.php        # CSV-eksport (admin)
 │   │   ├── export_confirm.php      # Bekreftelse
 │   │   └── api/
 │   │       ├── sett_session.php

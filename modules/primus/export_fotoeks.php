@@ -75,11 +75,14 @@ $output = fopen('php://output', 'w');
 
 // Header row
 $headers = [
-    'BildeId',
+    'IDNummer',
     'ParentID',
     'Objekttype',
     'Plassering',
     'PlassFriTekst',
+    'Prosess',
+    'Status',
+    'Tek.Attributt',
     'Antall',
 ];
 
@@ -93,6 +96,9 @@ foreach ($fotoListe as $row) {
         $row['Objekttype'] ?? '',
         $row['Plassering'] ?? '',
         $row['PlassFriTekst'] ?? '',
+        $row['Prosess'] ?? '',
+        $row['Status'] ?? '',
+        $row['Svarthvitt'] ?? '',
         $row['Antall'] ?? '',
     ];
     fputcsv($output, $dataRow, ';');

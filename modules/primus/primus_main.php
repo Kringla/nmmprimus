@@ -637,7 +637,7 @@ $sortToggleTitle = ($sortOrder === 'DESC') ? 'Vis laveste Bilde_Fil øverst' : '
             <h2>Motiv xlsx</h2>
             <span class="close" onclick="closeExportDialog()">&times;</span>
         </div>
-        <form method="post" action="export_excel.php" target="_blank" id="exportForm">
+        <form method="post" action="export_motiv.php" target="_blank" id="exportForm">
             <?= csrf_field(); ?>
             <input type="hidden" name="serie" value="<?= h($valgtSerie); ?>">
             <div class="modal-body">
@@ -1328,6 +1328,12 @@ document.getElementById('fotoeksExportForm').addEventListener('submit', function
         alert('FEIL: Du kan ikke eksportere mer enn 1000 poster om gangen.\nValgt område: ' + antall + ' poster');
         return false;
     }
+
+    // Lukk dialogen og vis bekreftelse etter at skjemaet er sendt
+    setTimeout(function() {
+        closeFotoeksExportDialog();
+        alert('Fotoeks-eksport utført.\nSerie: ' + document.querySelector('#fotoeksExportForm input[name="serie"]').value + '\nSerNr: ' + lavVerdi + ' – ' + hoeyVerdi);
+    }, 500);
 });
 <?php endif; ?>
 </script>

@@ -568,7 +568,7 @@ function primus_hent_kandidat_felter(int $nmmId): array
 
 /**
  * Hent foto for eksport med alle nødvendige felt.
- * Brukes av export_excel.php for admin-eksport.
+ * Brukes av export_motiv.php for admin-eksport.
  */
 function primus_hent_foto_for_export(string $serie, int $minSerNr, int $maxSerNr): array
 {
@@ -632,7 +632,10 @@ function primus_hent_foto_for_fotoeks_export(string $serie, int $minSerNr, int $
             'Fotoeksemplar'      AS Objekttype,
             Plassering,
             PlassFriTekst,
-            '1'                  As Antall
+            '1'                  AS Antall,
+            Prosess,
+            Status,
+            Svarthvitt
         FROM nmmfoto
         WHERE Transferred = 1
           AND LEFT(Bilde_Fil, 8) = :serie

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * export_excel.php
+ * export_motiv.php
  *
  * Admin-only: Export photos to Excel (SpreadsheetML format)
  * Filters by Serie and SerNr range, only exports Transferred = False
@@ -72,7 +72,7 @@ $_SESSION['export_sernr_til'] = $serNrTil;
 $_SESSION['export_count'] = count($fotoListe);
 
 // Generate filename with datetime
-$filename = 'ExportToPrimus_' . date('Ymd_His') . '.csv';
+$filename = 'NMMPrimus_Motiv_' . date('Ymd_His') . '.csv';
 
 // Set headers for CSV download (Excel will open CSV files)
 header('Content-Type: text/csv; charset=utf-8');
@@ -94,30 +94,29 @@ $output = fopen('php://output', 'w');
 
 // Header row
 $headers = [
-    'BildeID',
-    'URL_Bane',
+    'IDNummer',
     'MotivBeskr',
     'MotivType',
     'MotivEmne',
-    'MotivKriteria',
-    'Svarthvitt',
-    'Aksesjon',
+    'MotivKlasse',
+    'Aks.Samlingskaper',
     'Samling',
-    'Fotografi',
-    'FotoFirma',
+    'Fotografering',
+    'FotoJP',
     'Foto_Fra',
     'Foto_Til',
     'FotoSted',
-    'Prosess',
-    'Referansenr',
-    'FotografsRefNr',
+    'EgenRefNr',
+    'EksRefNr',
     'Plassering',
     'PlassFriTekst',
-    'Status',
     'Tilstand',
-    'FriKopi',
-    'Fart_UUID',
-    'Merknad'
+    'Rettigheter',
+    'KNAutoritet',
+    'AndreOpplysninger',
+    'Tek.Attributt',
+    'Prosess',
+    'Status',
 ];
 
 fputcsv($output, $headers, ';');
@@ -126,12 +125,10 @@ fputcsv($output, $headers, ';');
 foreach ($fotoListe as $row) {
     $dataRow = [
         $row['BildeId'] ?? '',
-        $row['URL_Bane'] ?? '',
         $row['MotivBeskr'] ?? '',
         $row['MotivType'] ?? '',
         $row['MotivEmne'] ?? '',
         $row['MotivKriteria'] ?? '',
-        $row['Svarthvitt'] ?? '',
         bitToString($row['Aksesjon']),
         $row['Samling'] ?? '',
         bitToString($row['Fotografi']),
@@ -139,16 +136,17 @@ foreach ($fotoListe as $row) {
         $row['Foto_Fra'] ?? '',
         $row['Foto_Til'] ?? '',
         $row['FotoSted'] ?? '',
-        $row['Prosess'] ?? '',
         $row['Referansenr'] ?? '',
         $row['FotografsRefNr'] ?? '',
         $row['Plassering'] ?? '',
         $row['PlassFriTekst'] ?? '',
-        $row['Status'] ?? '',
         $row['Tilstand'] ?? '',
         bitToString($row['FriKopi']),
         $row['Fart_UUID'] ?? '',
-        $row['Merknad'] ?? ''
+        $row['Merknad'] ?? '',
+        $row['Svarthvitt'] ?? '',
+        $row['Prosess'] ?? '',
+        $row['Status'] ?? '',
     ];
     fputcsv($output, $dataRow, ';');
 }
