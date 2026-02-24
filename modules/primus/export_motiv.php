@@ -95,12 +95,13 @@ $output = fopen('php://output', 'w');
 // Header row
 $headers = [
     'IDNummer',
+    'URL_Bane',
     'MotivBeskr',
     'MotivType',
     'MotivEmne',
     'MotivKlasse',
-    'Aks.Samlingskaper',
-    'Samling',
+    'Aksesjon',
+    'Aks.SamlingskaperJP',
     'Fotografering',
     'FotoJP',
     'Foto_Fra',
@@ -125,6 +126,7 @@ fputcsv($output, $headers, ';');
 foreach ($fotoListe as $row) {
     $dataRow = [
         $row['BildeId'] ?? '',
+        $row['URL_Bane'] ?? '',
         $row['MotivBeskr'] ?? '',
         $row['MotivType'] ?? '',
         $row['MotivEmne'] ?? '',
