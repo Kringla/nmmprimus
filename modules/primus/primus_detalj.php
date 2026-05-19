@@ -217,41 +217,36 @@ if (!in_array($samlingVerdi, $samlingValg, true) && str_starts_with($samlingVerd
 // --------------------------------------------------
 // Hendelsesmodus (iCh) – session-paritet
 // --------------------------------------------------
-// NB: Hvis dette er en ny rad (H2-modus), tvinges hendelsesmodus til 1
-if ($h2) {
-    // Ny rad: iCh=1 (allerede satt på linje 195)
+// VIKTIG: POST har alltid forrang – brukerens valg i skjema er kilde til sannhet.
+// Kun ved GET (sidelasting) beregnes iCh fra feltverdier eller tvinges til 1 for nye rader.
+if (is_post() && isset($_POST['iCh'])) {
+    $iCh = (int)$_POST['iCh'];
+    $_SESSION['primus_iCh'] = $iCh;
+} elseif ($h2 && $nyRad) {
+    // Ny rad (GET): start med iCh=1
     $iCh = 1;
 } else {
-    // VIKTIG: Hvis dette er POST (bruker lagrer), bruk iCh fra POST
-    // Hvis ikke POST (bruker åpner rad), beregn iCh fra Aksesjon/Fotografi
-    if (is_post() && isset($_POST['iCh'])) {
-        $iCh = (int)$_POST['iCh'];
-        $_SESSION['primus_iCh'] = $iCh;
+    // Eksisterende rad (GET): Beregn iCh fra faktiske feltverdier
+    $harFoto = (
+        trim((string)($foto['Fotograf'] ?? '')) !== '' ||
+        trim((string)($foto['FotoFirma'] ?? '')) !== '' ||
+        trim((string)($foto['FotoTidFra'] ?? '')) !== '' ||
+        trim((string)($foto['FotoTidTil'] ?? '')) !== '' ||
+        trim((string)($foto['FotoSted'] ?? '')) !== ''
+    );
+    $harSamling = trim((string)($foto['Samling'] ?? '')) !== '';
+
+    if ($harSamling && $harFoto) {
+        $iCh = 4;  // Foto + Samling
+    } elseif ($harSamling) {
+        $iCh = 3;  // Samlingshendelse
+    } elseif ($harFoto) {
+        $iCh = 2;  // Fotohendelse
     } else {
-        // Eksisterende rad: Beregn iCh fra faktiske feltverdier
-        // (Aksesjon/Fotografi-flagg kan være utdaterte i eldre rader)
-        $harFoto = (
-            trim((string)($foto['Fotograf'] ?? '')) !== '' ||
-            trim((string)($foto['FotoFirma'] ?? '')) !== '' ||
-            trim((string)($foto['FotoTidFra'] ?? '')) !== '' ||
-            trim((string)($foto['FotoTidTil'] ?? '')) !== '' ||
-            trim((string)($foto['FotoSted'] ?? '')) !== ''
-        );
-        $harSamling = trim((string)($foto['Samling'] ?? '')) !== '';
-
-        if ($harSamling && $harFoto) {
-            $iCh = 4;  // Foto + Samling
-        } elseif ($harSamling) {
-            $iCh = 3;  // Samlingshendelse
-        } elseif ($harFoto) {
-            $iCh = 2;  // Fotohendelse
-        } else {
-            $iCh = 1;  // Kun hendelse
-        }
-
-        // Synkroniser session med beregnet verdi
-        $_SESSION['primus_iCh'] = $iCh;
+        $iCh = 1;  // Kun hendelse
     }
+
+    $_SESSION['primus_iCh'] = $iCh;
 }
 
 // Validering (sikkerhet)
@@ -493,7 +488,7 @@ if (is_post() && ($_POST['action'] ?? '') === 'marker_kontrollert') {
     $stmt->execute(['foto_id' => $fotoId]);
 
     // Redirect tilbake til hovedsiden (samme logikk som Tilbake-knappen)
-    $side = primus_finn_side_for_foto($fotoId, 20, $_SESSION['primus_sort_order'] ?? 'DESC');
+    $side = primus_finn_side_for_foto($fotoId, 15, $_SESSION['primus_sort_order'] ?? 'DESC');
     $tilbakeUrl = 'primus_main.php?side=' . $side . '#foto-' . $fotoId;
     redirect($tilbakeUrl);
 }
@@ -617,6 +612,8 @@ if (is_post() && ($_POST['action'] ?? '') !== 'kopier_foto') {
 
         // Sjekk om vi skal gå til fartøyvalg etter lagring
         $gotoFartoyvalg = isset($_POST['save_and_goto_fartoyvalg']) && (int)$_POST['save_and_goto_fartoyvalg'] === 1;
+        $saveAndNew = isset($_POST['save_and_new']) && (int)$_POST['save_and_new'] === 1;
+        $saveAndCopy = isset($_POST['save_and_copy']) && (int)$_POST['save_and_copy'] === 1;
 
         if ($gotoFartoyvalg) {
             // Gå til fartøyvalg for å legge til i Avbildet
@@ -625,9 +622,53 @@ if (is_post() && ($_POST['action'] ?? '') !== 'kopier_foto') {
                 $retUrl .= '&k_sok=' . rawurlencode($kandidatSok);
             }
             redirect('../fartoy/fartoy_velg.php?Foto_ID=' . (int)$nyFotoId . '&ret=' . rawurlencode($retUrl) . '&mode=add_avbildet');
+        } elseif ($saveAndNew) {
+            // Opprett nytt foto i samme serie
+            $serie = isset($data['NMMSerie']) ? (string)$data['NMMSerie'] : '';
+            if ($serie === '' && !empty($data['Bilde_Fil']) && strlen((string)$data['Bilde_Fil']) >= 8) {
+                $serie = substr((string)$data['Bilde_Fil'], 0, 8);
+            }
+            $kandidatSerNr = primus_hent_neste_sernr_for_bruker($userId, $serie);
+            $_SESSION['primus_h2'] = 1;
+            $_SESSION['primus_iCh'] = 1;
+            $_SESSION['primus_ny_serie'] = $serie;
+            $_SESSION['primus_ny_kandidat_sernr'] = $kandidatSerNr;
+            redirect('primus_detalj.php?ny_rad=1');
+        } elseif ($saveAndCopy) {
+            // Lagre og kopier: kopier det nylig lagrede fotoet og åpne kopien
+            $bildeFil = (string)($data['Bilde_Fil'] ?? '');
+            $serie = strlen($bildeFil) >= 8 ? substr($bildeFil, 0, 8) : '';
+            $kopiFotoId = foto_kopier($db, $nyFotoId);
+            if ($serie !== '' && $kopiFotoId) {
+                $nesteSerNr = primus_hent_neste_sernr_for_bruker($userId, $serie);
+                if ($nesteSerNr >= 1 && $nesteSerNr <= 999) {
+                    $stmt = $db->prepare("UPDATE nmmfoto SET SerNr = :sernr, Bilde_Fil = :bilde_fil, URL_Bane = :url_bane WHERE Foto_ID = :foto_id");
+                    $stmt->execute([
+                        'sernr'     => $nesteSerNr,
+                        'bilde_fil' => $serie . '-' . str_pad((string)$nesteSerNr, 3, '0', STR_PAD_LEFT),
+                        'url_bane'  => FOTO_URL_PREFIX . $serie . ' -001-999 Damp og Motor',
+                        'foto_id'   => $kopiFotoId,
+                    ]);
+                    if ($userId > 0) {
+                        primus_lagre_siste_sernr_for_bruker($userId, $serie, $nesteSerNr);
+                    }
+                }
+            }
+            $nmmIdForKopi = (int)($data['NMM_ID'] ?? 0);
+            if ($nmmIdForKopi > 0) {
+                $stmtSkip = $db->prepare("SELECT FNA FROM nmm_skip WHERE NMM_ID = :id LIMIT 1");
+                $stmtSkip->execute(['id' => $nmmIdForKopi]);
+                $skipRow = $stmtSkip->fetch();
+                if ($skipRow) {
+                    $_SESSION['primus_k_sok'] = (string)($skipRow['FNA'] ?? '');
+                }
+            }
+            $_SESSION['primus_h2'] = 1;
+            $_SESSION['primus_iCh'] = 1;
+            redirect('primus_detalj.php?Foto_ID=' . $kopiFotoId);
         } else {
             // Normal flyt: gå tilbake til hovedsiden
-            $side = primus_finn_side_for_foto($nyFotoId, 20, $_SESSION['primus_sort_order'] ?? 'DESC');
+            $side = primus_finn_side_for_foto($nyFotoId, 15, $_SESSION['primus_sort_order'] ?? 'DESC');
             redirect('primus_main.php?side=' . $side);
         }
     } else {
@@ -646,8 +687,59 @@ if (is_post() && ($_POST['action'] ?? '') !== 'kopier_foto') {
             }
         }
 
+        // Sjekk om vi skal opprette nytt foto i samme serie etter lagring
+        $saveAndNew = isset($_POST['save_and_new']) && (int)$_POST['save_and_new'] === 1;
+        $saveAndCopy = isset($_POST['save_and_copy']) && (int)$_POST['save_and_copy'] === 1;
+
+        if ($saveAndNew) {
+            $serie = isset($data['NMMSerie']) ? (string)$data['NMMSerie'] : '';
+            if ($serie === '' && !empty($data['Bilde_Fil']) && strlen((string)$data['Bilde_Fil']) >= 8) {
+                $serie = substr((string)$data['Bilde_Fil'], 0, 8);
+            }
+            $kandidatSerNr = primus_hent_neste_sernr_for_bruker($userId, $serie);
+            $_SESSION['primus_h2'] = 1;
+            $_SESSION['primus_iCh'] = 1;
+            $_SESSION['primus_ny_serie'] = $serie;
+            $_SESSION['primus_ny_kandidat_sernr'] = $kandidatSerNr;
+            redirect('primus_detalj.php?ny_rad=1');
+        }
+
+        if ($saveAndCopy) {
+            // Lagre og kopier: kopier det nettopp lagrede fotoet og åpne kopien
+            $bildeFil = (string)($data['Bilde_Fil'] ?? '');
+            $serie = strlen($bildeFil) >= 8 ? substr($bildeFil, 0, 8) : '';
+            $kopiFotoId = foto_kopier($db, $fotoId);
+            if ($serie !== '' && $kopiFotoId) {
+                $nesteSerNr = primus_hent_neste_sernr_for_bruker($userId, $serie);
+                if ($nesteSerNr >= 1 && $nesteSerNr <= 999) {
+                    $stmt = $db->prepare("UPDATE nmmfoto SET SerNr = :sernr, Bilde_Fil = :bilde_fil, URL_Bane = :url_bane WHERE Foto_ID = :foto_id");
+                    $stmt->execute([
+                        'sernr'     => $nesteSerNr,
+                        'bilde_fil' => $serie . '-' . str_pad((string)$nesteSerNr, 3, '0', STR_PAD_LEFT),
+                        'url_bane'  => FOTO_URL_PREFIX . $serie . ' -001-999 Damp og Motor',
+                        'foto_id'   => $kopiFotoId,
+                    ]);
+                    if ($userId > 0) {
+                        primus_lagre_siste_sernr_for_bruker($userId, $serie, $nesteSerNr);
+                    }
+                }
+            }
+            $nmmIdForKopi = (int)($data['NMM_ID'] ?? 0);
+            if ($nmmIdForKopi > 0) {
+                $stmtSkip = $db->prepare("SELECT FNA FROM nmm_skip WHERE NMM_ID = :id LIMIT 1");
+                $stmtSkip->execute(['id' => $nmmIdForKopi]);
+                $skipRow = $stmtSkip->fetch();
+                if ($skipRow) {
+                    $_SESSION['primus_k_sok'] = (string)($skipRow['FNA'] ?? '');
+                }
+            }
+            $_SESSION['primus_h2'] = 1;
+            $_SESSION['primus_iCh'] = 1;
+            redirect('primus_detalj.php?Foto_ID=' . $kopiFotoId);
+        }
+
         // Finn sidenummer og redirect til riktig side med anchor til raden
-        $side = primus_finn_side_for_foto($fotoId, 20, $_SESSION['primus_sort_order'] ?? 'DESC');
+        $side = primus_finn_side_for_foto($fotoId, 15, $_SESSION['primus_sort_order'] ?? 'DESC');
         redirect('primus_main.php?side=' . $side . '#foto-' . $fotoId);
     }
 }
@@ -702,11 +794,13 @@ if ($aktNmmId > 0) {
     }
 }
 
-// Beregn Tilbake-URL (samme logikk som Oppdater-knappen)
+// Beregn Tilbake-URL
 if ($nyRad) {
     $tilbakeUrl = 'primus_main.php?avbryt_ny=1';
+} elseif (!empty($_SESSION['primus_main_last_url'])) {
+    $tilbakeUrl = $_SESSION['primus_main_last_url'] . '#foto-' . $fotoId;
 } else {
-    $side = primus_finn_side_for_foto($fotoId, 20, $_SESSION['primus_sort_order'] ?? 'DESC');
+    $side = primus_finn_side_for_foto($fotoId, 15, $_SESSION['primus_sort_order'] ?? 'DESC');
     $tilbakeUrl = 'primus_main.php?side=' . $side . '#foto-' . $fotoId;
 }
 
@@ -721,6 +815,8 @@ require_once __DIR__ . '/../../includes/layout_start.php';
         <h1 class="m-0">Primus – foto</h1>
         <div class="flex-row">
             <button type="submit" form="foto-form" class="btn btn-primary">Oppdater</button>
+            <button type="button" class="btn btn-success" onclick="lagreOgNytt()">Lagre og nytt</button>
+            <button type="button" class="btn btn-warning" onclick="lagreOgKopier()">Lagre og kopier</button>
             <form method="post" class="inline-form">
                 <?= csrf_field(); ?>
                 <input type="hidden" name="action" value="kopier_foto">
@@ -758,6 +854,12 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
                 <!-- Hidden field for å indikere at vi skal gå til fartøyvalg etter lagring -->
                 <input type="hidden" name="save_and_goto_fartoyvalg" id="save_and_goto_fartoyvalg" value="0">
+
+                <!-- Hidden field for å opprette nytt foto i samme serie etter lagring -->
+                <input type="hidden" name="save_and_new" id="save_and_new" value="0">
+
+                <!-- Hidden field for å lagre og kopiere -->
+                <input type="hidden" name="save_and_copy" id="save_and_copy" value="0">
 
                 <!-- Kandidatstyrt NMM_ID (H2). I H1 beholder vi DB-verdi. -->
                 <input type="hidden" name="NMM_ID" id="NMM_ID" value="<?= h((string)($foto['NMM_ID'] ?? '')) ?>">
@@ -811,6 +913,14 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                         <label for="ReferNeg_top">Negativref</label>
                         <input type="text" id="ReferNeg_top" value="<?= h((string)($foto['ReferNeg'] ?? '')) ?>">
                     </div>
+                    <div class="form-group w-12ch">
+                        <label for="Svarthvitt_top">Svarthvitt</label>
+                        <select id="Svarthvitt_top">
+                            <?php foreach ($svarthvittValg as $sv): ?>
+                                <option value="<?= h($sv) ?>" <?= $sv === (string)($foto['Svarthvitt'] ?? '') ? 'selected' : '' ?>><?= h($sv) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div class="form-group flex-auto">
                         <label for="FTO_vis">Bilde kommentarer</label>
                         <textarea name="FTO_vis" id="FTO_vis" rows="2" readonly style="resize: vertical; overflow-y: auto;"><?= h($ftoVis) ?></textarea>
@@ -847,8 +957,9 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                                     <table class="table table-sm">
                                         <thead>
                                             <tr>
-                                                <th>Fartøy</th>
+                                                <th style="width:20ch;">Fartøy</th>
                                                 <th class="nowrap">BYG</th>
+                                                <th>Verft</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -856,11 +967,13 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                                             <?php
                                             $kid = (int)$k['NMM_ID'];
                                             $navn = trim((string)$k['FTY'] . ' ' . (string)$k['FNA']);
+                                            $ver = (string)($k['VER'] ?? '');
                                             $byg = (string)($k['BYG'] ?? '');
                                             ?>
-                                            <tr class="kandidat-rad" data-nmm-id="<?= h((string)$kid) ?>" data-navn="<?= h($navn) ?>">
-                                                <td><?= h($navn) ?></td>
+                                            <tr class="kandidat-rad" data-nmm-id="<?= h((string)$kid) ?>" data-navn="<?= h($navn) ?>" style="font-size:calc(1em - 1px);">
+                                                <td style="width:20ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><?= h($navn) ?></td>
                                                 <td class="nowrap"><?= h($byg) ?></td>
+                                                <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><?= h($ver) ?></td>
                                             </tr>
                                         <?php endforeach; ?>
                                         </tbody>
@@ -893,7 +1006,6 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                             <div class="primus-pane <?= $aktivTab === 'motiv' ? 'is-active' : '' ?>" id="motiv">
                                 <?php
                                 area('MotivBeskr', 'Motivbeskrivelse', (string)($foto['MotivBeskr'] ?? ''), 4);
-                                area('MotivBeskrTillegg', 'Tillegg, Motivbeskrivelse', (string)($foto['MotivBeskrTillegg'] ?? ''), 3);
 
                                 area('Avbildet', 'Avbildet', (string)($foto['Avbildet'] ?? ''), 3);
                                 ?>
@@ -1013,6 +1125,16 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 /* ---------------------------------------------
    Lagre og gå til fartøyvalg (for nye rader)
 --------------------------------------------- */
+function lagreOgNytt() {
+    document.getElementById('save_and_new').value = '1';
+    document.getElementById('foto-form').submit();
+}
+
+function lagreOgKopier() {
+    document.getElementById('save_and_copy').value = '1';
+    document.getElementById('foto-form').submit();
+}
+
 function lagreOgGaaTilFartoyvalg() {
     // Bekreft at brukeren vil lagre
     if (!confirm('Fotoet må lagres før du kan legge til flere fartøy i Avbildet.\n\nLagre og fortsett til fartøyvalg?')) {
@@ -1130,6 +1252,26 @@ if (serNrEl) {
     // Når hovedfeltet endres, oppdater top-feltet
     referNegMain.addEventListener('input', function() {
         referNegTop.value = this.value;
+    });
+})();
+</script>
+
+<script>
+/* ---------------------------------------------
+   Synkroniser Svarthvitt-felt
+   --------------------------------------------- */
+(function() {
+    var svTop = document.getElementById('Svarthvitt_top');
+    var svMain = document.getElementById('Svarthvitt');
+
+    if (!svTop || !svMain) return;
+
+    svTop.addEventListener('change', function() {
+        svMain.value = this.value;
+    });
+
+    svMain.addEventListener('change', function() {
+        svTop.value = this.value;
     });
 })();
 </script>

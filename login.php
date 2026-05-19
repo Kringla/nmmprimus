@@ -33,7 +33,8 @@ $pageTitle = 'Logg inn';
 require_once __DIR__ . '/includes/layout_start.php';
 ?>
 
-<h1>Logg inn</h1>
+<div class="max-w-600">
+<h1 class="text-center">Logg inn</h1>
 
 <?php if ($errors): ?>
     <div class="alert alert-error">
@@ -81,5 +82,6 @@ require_once __DIR__ . '/includes/layout_start.php';
     </div>
 
 </form>
+</div>
 
 <?php require_once __DIR__ . '/includes/layout_slutt.php'; ?>

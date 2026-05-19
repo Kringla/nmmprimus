@@ -1,7 +1,7 @@
 # NMMPrimus Brukerhåndbok
 
-**Versjon:** 1.0
-**Dato:** 2026-01-21
+**Versjon:** 2.0
+**Dato:** 2026-05-06
 **System:** NMMPrimus - Maritim fotoarkiv-forvaltning
 
 ---
@@ -15,7 +15,7 @@
 5. [Arbeidsflyt: Opprette nytt foto](#5-arbeidsflyt-opprette-nytt-foto)
 6. [Arbeidsflyt: Redigere eksisterende foto](#6-arbeidsflyt-redigere-eksisterende-foto)
 7. [Arbeidsflyt: Kopiere foto](#7-arbeidsflyt-kopiere-foto)
-8. [Hendelsesmodus (iCh 1-6)](#8-hendelsesmodus-ich-1-6)
+8. [Hendelsesmodus (iCh 1–4)](#8-hendelsesmodus-ich-1-4)
 9. [Eksport til Excel (kun admin)](#9-eksport-til-excel-kun-admin)
 10. [Brukeradministrasjon (kun admin)](#10-brukeradministrasjon-kun-admin)
 11. [Ofte stilte spørsmål](#11-ofte-stilte-spørsmål)
@@ -69,70 +69,85 @@ Når du logger inn første gang, kommer du til **Landingssiden** hvor du kan:
 
 *Førstesiden*
 
-*Viktig: Merk at du er i riktig bildeserie. Dobbel-klikk på serienr for å åpne for redigering*
+*Viktig: Merk at du er i riktig bildeserie. Dobbel-klikk på rad for å åpne for redigering*
+
+### Verktøylinje
+
+Øverst på siden finner du en tre-kolonne verktøylinje:
+
+- **Venstre**: Valg av bildeserie
+- **Midten**: Søk etter skipsnavn
+- **Høyre**: Handlingsknapper (Nytt foto, og for admin: eksport og filter)
 
 ### Velge bildeserie
 
-1. Øverst på siden finner du en **dropdown-meny** med tilgjengelige bildeserier
+1. Øverst til venstre finner du en **dropdown-meny** med tilgjengelige bildeserier
 2. Velg ønsket serie (f.eks. "NSM.9999")
 3. Systemet husker din siste valgte serie til neste gang du logger inn
 
 ### Søke etter skipsnavn
 
-Systemet tilbyr en kraftig søkefunksjon for å finne foto basert på skipsnavn:
-
 1. I verktøylinjen finner du **"Søk skipsnavn"**-feltet
-2. Skriv inn minimum **3 tegn** av skipsnavnet du søker etter
+2. Skriv inn minimum **3 tegn** av skipsnavnet
 3. Velg søkeområde:
-   - **Uten avkrysning**: Søker kun i den valgte serien
+   - **Uten avkrysning**: Søker kun i valgt serie
    - **"Alle serier" avkrysset**: Søker i alle bildeserier
-4. Klikk **"Søk"** for å utføre søket
-5. Søkeresultater vises med:
-   - Antall treff
-   - Bildefil og motivbeskrivelse
-   - Paging hvis mer enn 20 treff
-6. Klikk **"Nullstill"** for å gå tilbake til normal serievisning
+4. Klikk **"Søk"**
+5. Klikk **"Nullstill"** for å gå tilbake til normal serievisning
 
-**Tips:**
-- Søket finner delvis match (f.eks. "kong" finner "Kong Olav V")
-- Søkeresultatene vises med samme paging-funksjonalitet som normal visning
-- Du kan dobbeltklikke på søkeresultater for å åpne fotoet for redigering
+**Tips:** Søket finner delvis treff – "kong" finner "Kong Olav V", "Kongshavn" osv.
+
+### Tidsfilter
+
+Klikk **"📅 Tidsfilter"** for å utvide filterpanelet:
+
+1. Velg felt å filtrere på: **Oppdatert tid** eller **Opprettet tid**
+2. Angi **Fra dato** og/eller **Til dato**
+3. Klikk **"Bruk filter"**
+4. Aktivt filter vises med en "Aktiv"-markering på knappen
+5. Klikk **"Nullstill"** for å fjerne filteret
 
 ### Fotoliste
 
-Listen viser alle foto i den valgte serien med:
+Listen viser 15 foto per side med kolonnene:
 
-- **Bilde_Fil**: Unik ID (f.eks. "NSM.9999-001")
-- **MotivBeskr**: Beskrivelse av motivet
-- **Transferred**: Status (kun synlig for admin)
+- **Bildefil**: Unik ID (f.eks. "NSM.9999-001") – dobbeltklikk for å redigere
+- **Motivbeskrivelse**
+- **Fotografi**: Avkrysningsboks (skrivebeskyttet)
+- **Aksesjon**: Avkrysningsboks (skrivebeskyttet)
+- **Samling**: Tekstfelt (skrivebeskyttet)
+- **Overført**: Checkbox for admin, tekst for vanlige brukere
+
+### Sortering
+
+Klikk **"↓ Høyeste først"** / **"↑ Laveste først"** for å bytte sorteringsrekkefølge på Bildefil. Valget huskes i sesjonen.
 
 ### Navigering (Paging)
 
-- 20 foto vises per side
-- Bruk **Forrige** / **Neste**-knappene for å bla mellom sider
-- Total antall foto vises øverst
+- 15 foto vises per side
+- Bruk **«« Første**, **« Forrige**, **Neste »**, **Siste »»** for å navigere
+- Skriv sidenummer direkte i "Gå til side"-feltet og trykk Enter
 
-### Handlinger
+### Handlinger per rad
+
+#### Kontrollert
+Klikk **"Kontrollert"** for å oppdatere tidsstempelet på raden (Oppdatert_Tid settes til nå). Nyttig for å dokumentere at raden er gjennomgått.
+
+#### Kopier
+Klikk **"Kopier"** for å lage en kopi av fotoet i samme serie. Kopien får nytt SerNr og åpnes i detaljvisning.
+
+#### Slett
+Klikk **"Slett"** og bekreft for å slette fotoet permanent. Du forblir på samme side etter sletting.
 
 #### Opprette nytt foto
-1. Klikk **"Nytt foto i valgt serie"**-knappen
-2. Du sendes til detaljvisning i **H2-modus** (opprettelsesmodus)
-3. Kandidatpanelet til venstre er aktivt for å velge fartøy
-
-#### Redigere eksisterende foto
-1. **Dobbeltklikk** på en rad i fotolisten
-2. Du sendes til detaljvisning i **H1-modus** (redigeringsmodus)
-3. Kandidatpanelet er skjult
-
-#### Slette foto
-1. Klikk **søppelbøtte-ikonet** til høyre for raden
-2. Bekreft slettingen i dialogen som vises
-3. Fotoet fjernes permanent fra databasen
+Klikk **"Nytt foto i valgt serie"** for å gå til detaljvisning i H2-modus (opprettelsesmodus).
 
 #### Toggle Transferred (kun admin)
-1. Klikk **checkbox** i Transferred-kolonnen
-2. Status endres umiddelbart (grønn = overført, hvit = ikke overført)
-3. Brukes for å markere foto som eksportert til arkivsystem
+Klikk **checkbox** i Overført-kolonnen for å veksle status. Brukes for å markere foto som eksportert til arkivsystem.
+
+### Statistikk (kun admin)
+
+Klikk **"📊 Statistikk"** for å åpne statistikksiden med oversikt over nmmfoto-tabellen.
 
 ---
 
@@ -140,112 +155,72 @@ Listen viser alle foto i den valgte serien med:
 
 ![Første fane - Motiv](Rediger1.png)
 
-*Førstesiden for fartøy/fotodetaljer*
+*Fane for fartøy/fotodetaljer*
 
 ### Toppfelt
 
-**NMMSerie**: 8-tegns serie-ID (f.eks. "NSM.9999") - ikke redigerbar
-**SerNr**: Sekvensnummer (1-999)
-**Bilde_Fil**: Auto-generert (NMMSerie-SerNr med leading zeros, f.eks. "NSM.9999-042")
+| Felt | Beskrivelse |
+|------|-------------|
+| **Valgt fartøy** | Fartøynavn (autofylt, ikke redigerbar) |
+| **NSM serie** | 8-tegns serie-ID, valgbar fra dropdown |
+| **Serienr** | Sekvensnummer 1–999 |
+| **Bildefil** | Auto-generert: Serie-SerNr med ledende nuller (f.eks. "NSM.9999-042") |
+| **Negativref** | Referanse negativnummer (hurtigtilgang) |
+| **Svarthvitt** | Velg mellom Svart-hvit, Farge, Håndkolorert |
+| **Bilde kommentarer** | FTO-felt fra fartøyregisteret (skrivebeskyttet) |
+
+### Handlingsknapper
+
+| Knapp | Funksjon |
+|-------|----------|
+| **Oppdater** | Lagrer alle endringer og returnerer til landingssiden |
+| **Lagre og nytt** | Lagrer og åpner blankt skjema for nytt foto i samme serie |
+| **Lagre og kopier** | Lagrer og oppretter en kopi med nytt SerNr |
+| **Kopier foto** | Kopierer fotoet (kun tilgjengelig for lagrede rader med fartøy) |
+| **Kontrollert** | Oppdaterer Oppdatert_Tid til nå og returnerer til landingssiden |
+| **Tilbake** | Returnerer til sist besøkte side i landingssiden uten å lagre |
+
+### Kandidatpanel (venstre)
+
+- **H2-modus** (nytt foto): Klikk på en rad for å velge fartøy
+- **H1-modus** (eksisterende foto): Klikk på en rad for å bytte fartøy (krever bekreftelse)
+- Søk oppdateres med knappen **"Søk"** eller Enter
 
 ### Faner
 
-Detaljvisningen er delt inn i tre faner:
-
 #### Fane 1: Motiv
 
-**Beskrivelse**:
-- **MotivBeskr**: Hovedbeskrivelse av motivet (autofylles ved valg av fartøy)
-- **MotivBeskrTillegg**: Tilleggsbeskrivelse (legges automatisk til i MotivBeskr ved Enter/blur)
-
-**Klassifikasjon**:
-- **MotivType**: Multiline-felt med format `ID;MotivType;UUID` (f.eks. "1060;Skipsportrett;...")
-  - Klikk **"Legg til 'Skipsportrett'"** for å legge til standard skipsportrett
-- **MotivEmne**: Multiline-felt med format `Id_nr;MotivOrd;UUID`
-- **MotivKriteria**: Multiline-felt med OU- og UDK-klassifikasjoner
-
-**Hendelse**:
-- **Hendelse**: Fritekst-beskrivelse av hendelse
-
-**Avbildet fartøy**:
-- **Valgt fartøy**: Autofylt fra fartøyvalg (ikke redigerbar)
-- **Avbildet**: Autofylt sammendrag (FTY FNA, BYG, KAL, UUID)
+- **Motivbeskrivelse**: Hovedbeskrivelse (autofylles ved fartøyvalg)
+- **Avbildet**: Sammendrag av fartøydata (autofylt)
+  - Klikk **"Legg til i 'Avbildet'"** for å legge til ytterligere fartøy
+- **Motivtype**: Multiline-felt (f.eks. "1060;Skipsportrett;...")
+  - Klikk **"Legg til 'Skipsportrett'"** for rask tillegging
+- **Motivemne**: Multiline-felt
+- **Søkekriteria**: OU- og UDK-klassifikasjoner
 
 #### Fane 2: Bildehistorikk
 
 ![Andre fane - Bildehistorikk](Rediger2.png)
 
-*Fane for fotodetaljer*
+Øverst velger du **Hendelsesmodus** (se pkt. 8).
 
-### Hendelsesmodus-velger
+**Hendelse**: Fritekst-beskrivelse (alltid redigerbar)
 
-Øverst i detaljvisningen finner du 6 knapper for å endre hendelsesmodus:
+**Samling** (kun i modus 3 eller 4):
+- Velg fra dropdown eller skriv inn egendefinert verdi
 
-1. **Ingen** (iCh 1): Kun hendelsesdata, ingen foto- eller samlingsfelt
-2. **Fotohendelse** (iCh 2): Hendelse + fotofelt
-3. **Samlingshendelse** (iCh 3): Hendelse + samlingsfelt
-4. **Foto + Samling** (iCh 4): Hendelse + begge
-5. **(Reservert)** (iCh 5): Ikke i bruk
-6. **Fullstendig** (iCh 6): Alle felt redigerbare
+**Fotoinformasjon** (kun i modus 2 eller 4):
+- **Fotograf**, **Fotofirma**, **Tid (Fra)**, **Tid (Til)**, **Sted tatt**
+- FotoTidTil arver automatisk verdien fra FotoTidFra hvis den er tom
 
-**Visuell indikator**: Felter som er redigerbare har grønn ramme, ikke-redigerbare har rød ramme.
-
-**Fotoinformasjon** (kun redigerbar i hendelsesmodus 2, 4 eller 6):
-- **Fotografi**: Checkbox (✓ = ja)
-- **Fotograf**: Navn på fotograf
-- **FotoFirma**: Fotofirma
-- **FotoTidFra**: Dato/årstall fra
-- **FotoTidTil**: Dato/årstall til (arver automatisk FotoTidFra hvis tomt)
-- **FotoSted**: Sted for fotografering
-
-**Samlingsinformasjon** (kun redigerbar i hendelsesmodus 3, 4 eller 6):
-- **Aksesjon**: Checkbox (✓ = ja)
-- **Samling**: Samlingsnavn
+**NB**: Felt som ikke er tillatt i valgt modus nullstilles i databasen ved lagring.
 
 #### Fane 3: Øvrige
 
-
-![Tredje fane - Øvrige](Rediger2.png)
-
-*Fane for arkiv detaljer*
-
-**Referanser**:
-- **Prosess**: Prosessinformasjon
-- **ReferNeg**: Referanse negativnummer
-- **ReferFArk**: Fotografs referansenummer
-- **Plassering**: Fysisk plassering
-
-**Tekniske felt**:
-- **Svarthvitt**: Checkbox (✓ = ja)
-- **Status**: Status for fotoet
-- **Tilstand**: Tilstand/kondisjon
-- **FriKopi**: Checkbox (✓ = fri til kopiering)
-
-**Merknad**:
+- **Referanse, NMM** / **Referanse, fotograf**
+- **Plassering**, **Prosess**
+- **Svarthvitt**, **Status**, **Tilstand**
 - **Merknad**: Fritekst-notater
-
-### Kandidatpanel (kun for nytt fartøy)
-
-Se pkt 5. trinn 2.
-
-
-### Handlinger
-
-#### Oppdater
-- Lagrer alle endringer i databasen
-- Oppdaterer SerNr-tracking for smart forslag ved neste nytt foto
-- Returnerer til landingssiden
-
-#### Kopier foto
-- **Lagrer først** nåværende rad (inkludert SerNr-tracking)
-- **Kopierer** fotoet (beholder Motiv-fanen)
-- **Nullstiller** Bildehistorikk og Øvrige til standardverdier
-- **Genererer** nytt SerNr basert på din siste registrering
-- **Åpner** den nye kopien for videre redigering
-
-#### Tilbake (Avbryt)
-- Returnerer til landingssiden **uten** å lagre endringer
-- For nye foto som ikke er lagret: Sletter kandidatdata fra minnet
 
 ---
 
@@ -260,150 +235,108 @@ Se pkt 5. trinn 2.
 
 ![Venstre sidepanel - Kandidater](Nytt.png)
 
-*Venstre panel for valg av fartøy*
-
 1. I **kandidatpanelet til venstre**: Søk etter fartøynavn (min. 3 tegn)
-2. **Velg fartøy** fra listen
-3. Systemet fyller automatisk ut:
-   - MotivBeskr
-   - MotivType
-   - MotivEmne
-   - MotivKriteria
-   - Avbildet
-   - Valgt fartøy
+2. Klikk **"Velg"** på ønsket fartøy
+3. Systemet fyller automatisk ut: MotivBeskr, MotivType, MotivEmne, MotivKriteria, Avbildet
 
-### Trinn 3: Juster hendelsesmodus
-1. Velg riktig **hendelsesmodus** (1-6)
-2. Standardmodus er **"Ingen" (iCh 1)**
-3. Velg f.eks. **"Fotohendelse" (iCh 2)** for å kunne fylle ut fotofelt
+### Trinn 3: Velg hendelsesmodus
+1. Gå til fanen **Bildehistorikk**
+2. Velg riktig **hendelsesmodus** (1–4)
+3. Standardmodus er **Ingen (iCh 1)** – endre til f.eks. **Fotografi (iCh 2)** for å fylle ut fotofelt
 
 ### Trinn 4: Fyll ut detaljer
-1. **Motiv-fane**:
-   - Juster MotivBeskr om nødvendig
-   - Legg til MotivBeskrTillegg
-   - Fyll inn Hendelse om aktuelt
-2. **Bildehistorikk-fane** (hvis tilgjengelig):
-   - Fyll inn Fotograf, FotoFirma
-   - Angi FotoTidFra (FotoTidTil arves automatisk)
-   - Angi FotoSted
-   - Huk av Aksesjon/Samling om nødvendig
-3. **Øvrige-fane**:
-   - Fyll inn tekniske felt
-   - Legg til merknad
+- **Motiv**: Juster MotivBeskr, fyll inn Hendelse
+- **Bildehistorikk**: Fotograf, FotoFirma, Tid, Sted, Samling (avhengig av modus)
+- **Øvrige**: Tekniske felt og merknad
 
 ### Trinn 5: Lagre
-1. Klikk **"Oppdater"**
-2. Systemet:
-   - Validerer at fartøy er valgt
-   - Validerer SerNr (1-999)
-   - Oppretter raden i databasen
-   - Lagrer SerNr i din personlige tracking
+1. Klikk **"Oppdater"** (eller **"Lagre og nytt"** for å fortsette med neste foto)
+2. SerNr valideres (1–999) og Bilde_Fil genereres automatisk
 3. Du returneres til landingssiden
 
-**Tips**: SerNr foreslås automatisk basert på ditt siste registrerte SerNr i serien + 1. Systemet sjekker at nummeret er ledig.
+**Tips**: SerNr foreslås automatisk som ditt siste SerNr i serien + 1.
 
 ---
 
 ## 6. Arbeidsflyt: Redigere eksisterende foto
 
 ### Trinn 1: Åpne fotoet
-1. På landingssiden: **Dobbeltklikk** på raden du vil redigere
+1. På landingssiden: **Dobbeltklikk** på raden
 2. Du sendes til detaljvisning i **H1-modus**
-3. Kandidatpanelet er skjult (fartøy er allerede valgt)
 
 ### Trinn 2: Juster hendelsesmodus om nødvendig
-1. Velg riktig **hendelsesmodus** (1-6) for å få tilgang til ønskede felt
-2. Grønne felt er redigerbare, røde er ikke redigerbare
+- Velg riktig modus for å få tilgang til ønskede felt
+- Felt som ikke er tillatt i valgt modus får visuell markering og nullstilles ved lagring
 
-### Trinn 3: Rediger feltene
-1. Gjør ønskede endringer på de tre fanene
-2. Alle endringer lagres når du klikker **"Oppdater"**
+### Trinn 3: Rediger og lagre
+1. Gjør endringer i de tre fanene
+2. Klikk **"Oppdater"** for å lagre
+3. Du returneres til den siden du kom fra i landingssiden (filtre og paginering bevares)
 
-### Trinn 4: Lagre
-1. Klikk **"Oppdater"**
-2. Endringene lagres i databasen
-3. SerNr-tracking oppdateres hvis du endret SerNr
-4. Du returneres til landingssiden
-
-**Alternativt: Avbryt**
-- Klikk **"Tilbake"** for å avbryte uten å lagre
+**Avbryt**: Klikk **"Tilbake"** for å returnere uten å lagre.
 
 ---
 
 ## 7. Arbeidsflyt: Kopiere foto
 
-### Når bruker kopier?
-Bruk kopier-funksjonen når du skal registrere flere foto i samme serie med:
-- Samme fartøy
-- Samme motivbeskrivelse
+### Når brukes kopier?
+Bruk kopier-funksjonen når du skal registrere flere foto med:
+- Samme fartøy og motivbeskrivelse
 - Men ulik bildehistorikk
 
-### Fremgangsmåte
+### Fremgangsmåte fra detaljvisning
 
-1. **Åpne eksisterende foto** (dobbeltklikk fra landingssiden)
-2. **Gjør eventuelle endringer** i nåværende foto
-3. **Klikk "Kopier foto"**
-4. **Bekreft** kopieringen
-5. Systemet:
-   - **Lagrer** nåværende foto (inkl. SerNr-tracking)
-   - **Kopierer** fotoet (beholder Motiv-fanen)
-   - **Nullstiller**:
-     - FotoTidFra/Til → NULL
-     - FotoSted → NULL
-     - Aksesjon → 0
-     - FriKopi → 1 (standard)
-     - Samling → NULL
-     - Fotografi → 0
-     - Fotograf → NULL
-     - FotoFirma → NULL
-     - ReferFArk → NULL
-     - ReferNeg → NULL
-   - **Genererer nytt SerNr** (ditt siste + 1, eller første ledige)
-   - **Åpner kopien** for redigering
-6. **Fyll inn** ny bildehistorikk
-7. **Klikk "Oppdater"** for å lagre kopien
+1. Åpne eksisterende foto (dobbeltklikk fra landingssiden)
+2. Klikk **"Kopier foto"** (krever at fotoet er lagret med fartøy)
+3. Bekreft kopieringen
+4. Systemet:
+   - Kopierer motivdata fra kildefotoet
+   - Nullstiller: Fotograf, FotoFirma, FotoTidFra/Til, FotoSted, Samling, ReferFArk, ReferNeg
+   - Setter FriKopi = 1
+   - Genererer nytt SerNr
+   - Åpner kopien for redigering
+5. Fyll inn ny bildehistorikk og klikk **"Oppdater"**
 
-**Tips**: Du kan fortsette å kopiere den nye kopien for å raskt registrere flere foto i serien.
+### Alternativ: Lagre og kopier
+
+Klikk **"Lagre og kopier"** for å lagre gjeldende foto og umiddelbart opprette en kopi. Praktisk ved serieregistrering.
+
+### Kopier fra landingssiden
+
+Klikk **"Kopier"**-knappen på en rad i landingssiden for å kopiere direkte uten å åpne fotoet.
 
 ---
 
-## 8. Hendelsesmodus (iCh 1-6)
+## 8. Hendelsesmodus (iCh 1–4)
 
 ### Hva er hendelsesmodus?
 
-Hendelsesmodus styrer hvilke felt som er redigerbare i detaljvisningen. Dette sikrer at du kun fyller ut relevante felt basert på type registrering.
+Hendelsesmodus styrer hvilke felt som er redigerbare i Bildehistorikk-fanen, og hvilke felt som skrives til databasen ved lagring.
 
 ### Modusene
 
-| Modus | Navn | Beskrivelse | Foto-felt | Samling-felt |
-|-------|------|-------------|-----------|--------------|
-| **1** | Ingen | Kun hendelse og motivdata | ❌ | ❌ |
-| **2** | Fotohendelse | Hendelse + fotoinformasjon | ✅ | ❌ |
-| **3** | Samlingshendelse | Hendelse + samlingsinformasjon | ❌ | ✅ |
-| **4** | Foto + Samling | Hendelse + begge | ✅ | ✅ |
-| **5** | (Reservert) | Ikke i bruk | ❌ | ❌ |
-| **6** | Fullstendig | Alle felt redigerbare | ✅ | ✅ |
+| Modus | Navn | Foto-felt | Samling-felt |
+|-------|------|-----------|--------------|
+| **1** | Ingen | ❌ Nullstilles | ❌ Nullstilles |
+| **2** | Fotografi | ✅ Redigerbare | ❌ Nullstilles |
+| **3** | Samling | ❌ Nullstilles | ✅ Redigerbar |
+| **4** | Foto + Samling | ✅ Redigerbare | ✅ Redigerbar |
 
-### Foto-felt (tilgjengelig i modus 2, 4, 6)
-- Fotograf
-- FotoFirma
-- FotoTidFra
-- FotoTidTil
-- FotoSted
-
-### Samling-felt (tilgjengelig i modus 3, 4, 6)
-- Samling
+**Aksesjon** og **Fotografi**-checkboxene settes automatisk basert på valgt modus – de er ikke manuelt redigerbare.
 
 ### Visuell markering
-- **Grønn ramme**: Feltet er redigerbart
-- **Rød ramme**: Feltet er ikke redigerbart (verdien lagres ikke ved oppdatering)
+
+- **Grønn ramme**: Feltet er redigerbart og vil lagres
+- **Rød ramme**: Feltet er ikke redigerbart – eksisterende verdi nullstilles ved lagring
 
 ### Bytte modus
-1. Klikk på ønsket modus-knapp øverst i detaljvisningen
-2. Siden oppdateres umiddelbart
-3. Feltene får riktig farge basert på ny modus
 
-**NB**: Modusen huskes i din sesjon og brukes for nye foto.
+1. Gå til **Bildehistorikk**-fanen
+2. Velg ønsket modus med radioknappene
+3. Feltene oppdaterer farge umiddelbart
+4. Klikk **"Oppdater"** for å lagre med ny modus
+
+**NB**: Ved modusskifte nullstilles feltene som ikke tilhører ny modus. F.eks. ved skifte fra modus 3 til modus 1 slettes Samling fra databasen.
 
 ---
 
@@ -412,46 +345,30 @@ Hendelsesmodus styrer hvilke felt som er redigerbare i detaljvisningen. Dette si
 ### Tilgang
 Kun brukere med **admin-rolle** har tilgang til Excel-eksport.
 
-### Fremgangsmåte
+### Motiv xlsx – eksport av uoverførte foto
 
-1. På landingssiden: Klikk **"Eksport til Excel"** (øverst til høyre)
-2. Du sendes til eksport-siden
-3. **Bekreft eksport**:
-   - Serie: Vises automatisk (valgt serie fra landingssiden)
-   - SerNr-område: Standard 1-999 (alle foto i serien)
-4. Klikk **"Eksporter"**
-5. **Last ned CSV-fil** (separator: semikolon)
-6. **Bekreft overføring**:
-   - Klikk **"Marker som overført"** for å sette Transferred = True
-   - Dette forhindrer at samme foto eksporteres flere ganger
-7. Du returneres til landingssiden
+Brukes for å eksportere foto som ennå ikke er overført til arkivsystemet.
 
-### Eksporterte felt
-- BildeId (Bilde_Fil)
-- URL_Bane
-- MotivBeskr
-- MotivType
-- MotivEmne
-- MotivKriteria
-- Svarthvitt
-- Aksesjon
-- Samling
-- Fotografi
-- FotoFirma
-- Foto_Fra (FotoTidFra)
-- Foto_Til (FotoTidTil)
-- FotoSted
-- Prosess
-- Referansenr (ReferNeg)
-- FotografsRefNr (ReferFArk)
-- Plassering
-- Status
-- Tilstand
-- FriKopi
-- Fart_UUID (UUID)
-- Merknad
+1. Klikk **"Motiv xlsx"** i verktøylinjen
+2. Fyll inn **SerNr fra** og **SerNr til** (maks 1000 poster)
+3. Klikk **"Eksporter"** – Excel-fil lastes ned
+4. Etter vellykket eksport: marker foto som overført via **"Toggle Transferred"**
 
-**NB**: Kun foto med Transferred = False eksporteres.
+**Eksporterte felt:** BildeId, URL_Bane, MotivBeskr, MotivType, MotivEmne, MotivKriteria, Svarthvitt, Aksesjon, Samling, Fotografi, FotoFirma, Foto_Fra, Foto_Til, FotoSted, Prosess, Referansenr, FotografsRefNr, Plassering, Status, Tilstand, FriKopi, Fart_UUID, Merknad
+
+### Fotoeks xlsx – eksport av overførte foto
+
+Brukes for å eksportere foto som allerede er markert som overført (Transferred = Ja).
+
+1. Klikk **"Fotoeks xlsx"**
+2. Fyll inn SerNr-område
+3. Klikk **"Eksporter"**
+
+### Toggle Transferred (kun admin)
+
+- Klikk **checkbox** i Overført-kolonnen på en rad for å veksle status
+- Klikk **"Kun overførte"** for å filtrere og kun vise overførte rader
+- Klikk **"Vis alle"** for å fjerne filteret
 
 ---
 
@@ -462,128 +379,72 @@ Kun brukere med **admin-rolle** har tilgang til brukeradministrasjon.
 
 ### Opprett ny bruker
 
-1. Klikk **"Admin"** i menyen
+1. Klikk **"Brukeradministrasjon"** i menyen
 2. Klikk **"Opprett ny bruker"**
-3. Fyll inn:
-   - E-postadresse (unik)
-   - Passord (minimum 6 tegn)
-   - Rolle (bruker eller admin)
+3. Fyll inn e-postadresse, passord (min. 6 tegn) og rolle
 4. Klikk **"Opprett bruker"**
 
 ### Rediger bruker
 
-1. Finn brukeren i listen
-2. Klikk **"Rediger"**
-3. Endre:
-   - E-postadresse
-   - Rolle
-4. Klikk **"Lagre endringer"**
+1. Finn brukeren i listen og klikk **"Rediger"**
+2. Endre e-postadresse og/eller rolle
+3. Klikk **"Lagre endringer"**
 
 ### Endre passord
 
-1. Finn brukeren i listen
-2. Klikk **"Endre passord"**
-3. Skriv inn nytt passord (minimum 6 tegn)
-4. Klikk **"Oppdater passord"**
+1. Finn brukeren og klikk **"Endre passord"**
+2. Skriv inn nytt passord (min. 6 tegn)
+3. Klikk **"Oppdater passord"**
 
-### Deaktivere/aktivere bruker
+### Deaktivere / aktivere bruker
 
-1. Finn brukeren i listen
-2. Klikk **"Deaktiver"** eller **"Aktiver"**
-3. Deaktiverte brukere kan ikke logge inn
+Klikk **"Deaktiver"** eller **"Aktiver"** ved siden av brukeren. Deaktiverte brukere kan ikke logge inn.
 
 ### Slette bruker
 
-1. Finn brukeren i listen
-2. Klikk **"Slett"**
-3. Bekreft slettingen
-4. Brukeren fjernes permanent fra systemet
-
-**NB**: Vær forsiktig med sletting - dette kan ikke angres.
+Klikk **"Slett"** og bekreft. Sletting er permanent.
 
 ---
 
 ## 11. Ofte stilte spørsmål
 
-### Hvorfor får jeg SerNr 2 i stedet for 1 i en tom serie?
+### Hvorfor foreslås SerNr 2 i stedet for 1 i en tom serie?
 
-Dette skjer ikke lenger. Systemet beregner riktig SerNr basert på:
-1. Ditt siste registrerte SerNr i serien + 1
-2. Hvis du aldri har registrert i serien: SerNr 1
-3. Hvis foreslått SerNr er opptatt: Første ledige nummer
+Systemet foreslår ditt **siste SerNr i serien + 1**. Hvis du aldri har registrert i serien, foreslås SerNr 1. Nummeret sjekkes mot eksisterende rader, og første ledige foreslås.
 
-**NB**: SerNr lagres IKKE før du klikker "Oppdater".
+### Hvorfor forsvinner feltene mine når jeg bytter hendelsesmodus?
 
-### Hvorfor forsvinner mitt SerNr når jeg klikker "Avbryt"?
-
-Dette er korrekt. "Avbryt"-knappen:
-- Lagrer INGENTING i databasen
-- Sletter kandidatdata fra minnet
-- Returnerer til landingssiden
-
-Hvis du vil beholde SerNr, må du klikke "Oppdater".
+Felt som ikke tilhører valgt modus nullstilles i databasen ved lagring. Dette er tilsiktet atferd for å sikre datakonsistens. Bytt tilbake til riktig modus før du lagrer hvis du vil beholde verdiene.
 
 ### Hvorfor kan jeg ikke redigere Fotograf-feltet?
 
-Fotograf-feltet er kun redigerbart i hendelsesmodus **2, 4 eller 6**. Velg riktig modus øverst i detaljvisningen.
+Fotograf er kun redigerbart i hendelsesmodus **2 eller 4**. Velg riktig modus i Bildehistorikk-fanen.
 
 ### Hvordan endre SerNr på et eksisterende foto?
 
-1. Åpne fotoet (dobbeltklikk fra landingssiden)
-2. Endre **SerNr**-feltet øverst
-3. Klikk **"Oppdater"**
-4. Systemet validerer at nye SerNr er ledig (1-999)
-5. Bilde_Fil oppdateres automatisk
+1. Åpne fotoet
+2. Endre **Serienr**-feltet øverst
+3. Klikk **"Oppdater"** – Bilde_Fil oppdateres automatisk
 
-### Hvorfor får jeg feilmelding "Valgt fartøy må fylles ut"?
+### Hvorfor får jeg "Du må velge et fartøy"-feilmelding?
 
-Dette skjer hvis du prøver å lagre et nytt foto uten å velge fartøy fra kandidatlisten. Løsning:
-1. Søk etter fartøy i venstre panel
-2. Klikk "Velg" på ønsket fartøy
-3. Systemet fyller automatisk ut feltene
-4. Klikk "Oppdater" igjen
+Du prøver å lagre uten at fartøy er valgt. Søk i kandidatpanelet til venstre og klikk "Velg" på ønsket fartøy.
 
-### Hvordan kopiere FotoTidFra til FotoTidTil automatisk?
+### Kan FotoTidTil fylles ut automatisk?
 
-Systemet gjør dette automatisk:
-1. Fyll inn **FotoTidFra**
-2. Trykk **Enter** eller **klikk utenfor feltet** (blur)
-3. Hvis FotoTidTil er tomt: Verdien kopieres umiddelbart
+Ja. Fyll inn **FotoTidFra** og trykk Enter eller klikk utenfor feltet – FotoTidTil arver verdien hvis den er tom.
 
-### Kan jeg angre sletting av et foto?
+### Kan jeg angre sletting?
 
-Nei. Sletting er permanent og kan ikke angres. Vær sikker før du sletter.
+Nei. Sletting er permanent. Vær sikker før du sletter.
 
 ### Hva betyr "Transferred"?
 
-Transferred er en status som viser om fotoet er eksportert til arkivsystemet:
-- **Ikke krysset av** (hvit): Ikke eksportert ennå
-- **Krysset av** (grønn): Eksportert og overført
+Viser om fotoet er eksportert til arkivsystemet. Kun admin kan endre denne statusen via Overført-checkboxen i landingssiden.
 
-Kun admin kan endre denne statusen.
+### Tilbake-knappen sender meg til feil side
 
-### Hvordan søker jeg etter skipsnavn?
-
-1. Skriv inn minimum **3 tegn** i "Søk skipsnavn"-feltet
-2. Velg om du vil søke i kun valgt serie eller alle serier
-3. Klikk **"Søk"**
-4. Søket finner alle foto hvor skipsnavnet inneholder søketeksten
-
-**Eksempler:**
-- Søk på "kong" finner "Kong Olav V", "Dronning Maud", "Kongshavn"
-- Søk på "NSM" finner alle skip med "NSM" i navnet
-
-### Hvorfor får jeg "Søk krever minimum 3 tegn"?
-
-Dette er en sikkerhet for å unngå:
-- For brede søk som kan returnere tusenvis av treff
-- Unødvendig belastning på databasen
-
-Skriv inn minst 3 tegn for å utføre søket.
-
-### Kan jeg søke i alle serier samtidig?
-
-Ja! Huk av **"Alle serier"** ved siden av søkefeltet før du klikker "Søk". Dette søker gjennom alle bildeserier i systemet.
+Tilbake-knappen returnerer til sist besøkte side i landingssiden, inkludert alle filtre, søk og paginering. Hvis du ble sendt til en annen side i mellomtiden, kan siden avvike.
 
 ---
 
@@ -591,50 +452,28 @@ Ja! Huk av **"Alle serier"** ved siden av søkefeltet før du klikker "Søk". De
 
 ### Jeg kan ikke logge inn
 
-**Mulige årsaker**:
-1. Feil e-postadresse eller passord
-2. Brukeren er deaktivert
-3. Nettleseren blokkerer cookies
-
-**Løsning**:
 1. Sjekk at e-postadresse og passord er korrekt
-2. Kontakt admin for å aktivere brukeren
-3. Aktiver cookies i nettleseren
+2. Kontakt admin for å sjekke om brukeren er aktiv
+3. Sjekk at nettleseren tillater cookies
 
-### CSS lastes ikke / siden ser rar ut
+### Siden ser rar ut (mangler CSS)
 
-**Årsak**: BASE_URL er feil konfigurert
+BASE_URL er feil konfigurert. Kontakt systemadministrator.
 
-**Løsning**: Kontakt systemadministrator
+### "Kan ikke koble til database"
 
-### "Could not connect to database"
+MySQL-tjenesten er ikke startet (lokalt). Start XAMPP og MySQL-tjenesten.
 
-**Årsak**: MySQL-server er ikke startet
+### Hvit side / 500-feil
 
-**Løsning**:
-1. Start XAMPP
-2. Start MySQL-tjenesten
-3. Prøv igjen
+Syntaksfeil i PHP-kode eller feil databasekonfigurasjon. Sjekk feillogg eller kontakt systemadministrator.
 
-### Jeg får hvit side / 500-feil
+### SerNr hopper til uventede nummer
 
-**Årsak**: Syntaksfeil i PHP-kode
+Systemet søker fra ditt forrige SerNr til 999, deretter fra 1 – og velger første ledige. Hvis mange nummer er i bruk, kan forslaget virke overraskende. Du kan alltid endre SerNr manuelt.
 
-**Løsning**: Sjekk apache/logs/error.log eller kontakt systemadministrator
+### Jeg mister sesjon / blir logget ut
 
-### SerNr går fra 1 til 999 og tilbake til 1
-
-**Forklaring**: Systemet søker først fra ditt forrige SerNr til 999, deretter fra 1 til ditt forrige SerNr for å finne første ledige nummer.
-
-**Eksempel**:
-- Du la inn SerNr 500 sist
-- Neste forslag: 501
-- Hvis 501-999 er opptatt: Systemet søker 1-499
-- Første ledige nummer foreslås
-
-### Jeg mister sesjon / blir logget ut hele tiden
-
-**Løsning**:
 1. Huk av **"Husk meg"** ved innlogging
 2. Sjekk at nettleseren tillater cookies
 3. Kontakt systemadministrator hvis problemet vedvarer
@@ -645,12 +484,9 @@ Ja! Huk av **"Alle serier"** ved siden av søkefeltet før du klikker "Søk". De
 
 **E-post**: webman@skipsweb.no
 
-**Teknisk dokumentasjon**: Se `doc/`-mappen i repositoryet
-
 **Rapporter feil**: Kontakt systemadministrator eller webmaster
 
 ---
 
-**Versjon:** 1.0
-**Sist oppdatert:** 2026-01-21
-**Forfatter**: NMMPrimus-teamet
+**Versjon:** 2.0
+**Sist oppdatert:** 2026-05-06

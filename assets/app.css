@@ -405,6 +405,24 @@ select[data-foto-state="inaktiv"] {
     margin: 30px auto;
 }
 
+/* Login / enkeltside-skjema */
+.form-card {
+    background: #fff;
+    border: 1px solid #dbe3ef;
+    border-radius: 6px;
+    padding: 2rem;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.form-card .form-actions {
+    margin-top: 1.25rem;
+}
+
+.form-card .form-actions .btn {
+    width: 100%;
+}
+
 .max-w-40ch {
     max-width: 40ch;
     width: 100%;

@@ -85,7 +85,8 @@ function primus_hent_foto_for_serie(
     ?string $dateFra = null,
     ?string $dateTil = null,
     string $dateField = 'Oppdatert_Tid',
-    string $sortOrder = 'DESC'
+    string $sortOrder = 'DESC',
+    ?bool $filterTransferred = null
 ): array
 {
     $db = db();
@@ -105,6 +106,11 @@ function primus_hent_foto_for_serie(
         // Til-dato: < dagen etter (inkluderer hele til-dagen)
         $where .= " AND $dateField < DATE_ADD(:date_til, INTERVAL 1 DAY)";
         $params['date_til'] = $dateTil . ' 00:00:00';
+    }
+
+    if ($filterTransferred !== null) {
+        $where .= " AND Transferred = :transferred";
+        $params['transferred'] = $filterTransferred ? 1 : 0;
     }
 
     $sql = "
@@ -130,7 +136,8 @@ function primus_hent_totalt_antall_foto(
     string $serie,
     ?string $dateFra = null,
     ?string $dateTil = null,
-    string $dateField = 'Oppdatert_Tid'
+    string $dateField = 'Oppdatert_Tid',
+    ?bool $filterTransferred = null
 ): int
 {
     $db = db();
@@ -148,6 +155,11 @@ function primus_hent_totalt_antall_foto(
     if ($dateTil !== null && $dateTil !== '') {
         $where .= " AND $dateField < DATE_ADD(:date_til, INTERVAL 1 DAY)";
         $params['date_til'] = $dateTil . ' 00:00:00';
+    }
+
+    if ($filterTransferred !== null) {
+        $where .= " AND Transferred = :transferred";
+        $params['transferred'] = $filterTransferred ? 1 : 0;
     }
 
     $sql = "
@@ -182,7 +194,8 @@ function primus_sok_foto_etter_skipsnavn(
     ?string $dateFra = null,
     ?string $dateTil = null,
     string $dateField = 'Oppdatert_Tid',
-    string $sortOrder = 'DESC'
+    string $sortOrder = 'DESC',
+    ?bool $filterTransferred = null
 ): array
 {
     $db = db();
@@ -200,6 +213,11 @@ function primus_sok_foto_etter_skipsnavn(
     if ($serie !== null && $serie !== '') {
         $sql .= " AND LEFT(f.Bilde_Fil, 8) = :serie ";
         $params['serie'] = $serie;
+    }
+
+    if ($filterTransferred !== null) {
+        $sql .= " AND f.Transferred = :transferred ";
+        $params['transferred'] = $filterTransferred ? 1 : 0;
     }
 
     // Legg til tidsfilter hvis angitt
@@ -251,7 +269,8 @@ function primus_sok_foto_etter_skipsnavn_antall(
     ?string $serie,
     ?string $dateFra = null,
     ?string $dateTil = null,
-    string $dateField = 'Oppdatert_Tid'
+    string $dateField = 'Oppdatert_Tid',
+    ?bool $filterTransferred = null
 ): int
 {
     $db = db();
@@ -268,6 +287,11 @@ function primus_sok_foto_etter_skipsnavn_antall(
     if ($serie !== null && $serie !== '') {
         $sql .= " AND LEFT(f.Bilde_Fil, 8) = :serie ";
         $params['serie'] = $serie;
+    }
+
+    if ($filterTransferred !== null) {
+        $sql .= " AND f.Transferred = :transferred ";
+        $params['transferred'] = $filterTransferred ? 1 : 0;
     }
 
     // Legg til tidsfilter hvis angitt
@@ -418,6 +442,7 @@ function primus_hent_skip_liste(string $sok = ''): array
             s.FTY,
             s.FNA,
             s.BYG,
+            s.VER,
             s.RGH,
             s.KAL,
             s.FTO,
@@ -431,7 +456,7 @@ function primus_hent_skip_liste(string $sok = ''): array
         $params['sok'] = '%' . $sok . '%';
     }
 
-    $sql .= " ORDER BY s.FNA LIMIT 25 ";
+    $sql .= " ORDER BY s.FNA, s.BYG LIMIT 250 ";
 
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
@@ -744,4 +769,61 @@ function primus_finn_side_for_foto(int $fotoId, int $perSide = 20, string $sortO
     $side = (int)ceil($posisjon / $perSide);
 
     return max(1, $side);
+}
+
+/* --------------------------------------------------
+   STATISTIKK
+-------------------------------------------------- */
+
+/**
+ * Hent statistikk per serie + globale totaler.
+ *
+ * Bruker GROUP BY ... WITH ROLLUP slik at siste rad har Serie = NULL
+ * og representerer totalsum for hele tabellen.
+ *
+ * @return array Rader med (Serie, Antall, Transferred). Siste rad: Serie = null.
+ */
+function primus_hent_statistikk_per_serie(): array
+{
+    $db = db();
+    return $db->query("
+        SELECT
+            LEFT(Bilde_Fil, 8)  AS Serie,
+            COUNT(*)             AS Antall,
+            SUM(Transferred = 1) AS Transferred
+        FROM nmmfoto
+        GROUP BY LEFT(Bilde_Fil, 8) WITH ROLLUP
+    ")->fetchAll();
+}
+
+/**
+ * Hent antall foto per serie i et brukerdefinert tidsrom.
+ *
+ * Bruker GROUP BY ... WITH ROLLUP slik at siste rad har Serie = NULL
+ * og representerer totalsum for tidsrommet.
+ *
+ * @param string $fra      Datetime fra, format 'YYYY-MM-DD HH:MM:SS'
+ * @param string $til      Datetime til, format 'YYYY-MM-DD HH:MM:SS'
+ * @param string $dateFelt 'Opprettet_Tid' eller 'Oppdatert_Tid'
+ * @return array Rader med (Serie, Antall). Siste rad: Serie = null.
+ */
+function primus_hent_statistikk_i_tidsrom(string $fra, string $til, string $dateFelt): array
+{
+    // Whitelist felt for å hindre SQL-injeksjon
+    $tillatteFelt = ['Opprettet_Tid', 'Oppdatert_Tid'];
+    if (!in_array($dateFelt, $tillatteFelt, true)) {
+        $dateFelt = 'Opprettet_Tid';
+    }
+
+    $db = db();
+    $stmt = $db->prepare("
+        SELECT
+            LEFT(Bilde_Fil, 8) AS Serie,
+            COUNT(*)            AS Antall
+        FROM nmmfoto
+        WHERE $dateFelt BETWEEN :fra AND :til
+        GROUP BY LEFT(Bilde_Fil, 8) WITH ROLLUP
+    ");
+    $stmt->execute(['fra' => $fra, 'til' => $til]);
+    return $stmt->fetchAll();
 }

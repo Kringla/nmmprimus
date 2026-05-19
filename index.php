@@ -21,9 +21,10 @@ if (!$isAdmin) {
 require_once __DIR__ . '/includes/layout_start.php';
 ?>
 
-<h1>Velkommen til NMMPrimus</h1>
+<div class="max-w-600">
+<h1 class="text-center">Velkommen til NMMPrimus</h1>
 
-<p>
+<p class="text-center">
     Du er innlogget som
     <strong><?= h($cu['email']); ?></strong>
     med rolle
@@ -32,7 +33,7 @@ require_once __DIR__ . '/includes/layout_start.php';
 
 <?php if ($isAdmin): ?>
     <!-- Admin-meny -->
-    <div class="card max-w-600">
+    <div class="card">
         <div class="card-header card-header-blue">
             <strong>Administratormeny</strong>
         </div>
@@ -66,5 +67,6 @@ require_once __DIR__ . '/includes/layout_start.php';
         })();
     </script>
 <?php endif; ?>
+</div>
 
 <?php require_once __DIR__ . '/includes/layout_slutt.php'; ?>

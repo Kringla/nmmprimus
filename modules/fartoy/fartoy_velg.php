@@ -22,6 +22,12 @@ if ((!$fotoId && !$nyRad) || $ret === '') {
 $sok = trim((string)($_GET['sok'] ?? ''));
 $liste = primus_hent_skip_liste($sok);
 
+// Beregn tilbake-URL med samme logikk som Velg-knappen
+$tilbakeUrl = $ret;
+if (!str_starts_with($ret, 'http') && !str_starts_with($ret, '/')) {
+    $tilbakeUrl = '../primus/' . $ret;
+}
+
 require_once __DIR__ . '/../../includes/layout_start.php';
 ?>
 <div class="container-fluid">
@@ -53,7 +59,7 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
                 <div>
                     <button class="btn btn-primary" type="submit">Søk</button>
-                    <a class="btn btn-secondary" href="<?= h($ret) ?>">Tilbake</a>
+                    <a class="btn btn-secondary" href="<?= h($tilbakeUrl) ?>">Tilbake</a>
                 </div>
             </form>
 

@@ -13,6 +13,7 @@ require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/ui.php';
 require_once __DIR__ . '/../../config/constants.php';
 require_once __DIR__ . '/primus_modell.php';
+require_once __DIR__ . '/../foto/foto_modell.php';
 
 require_login();
 
@@ -44,7 +45,80 @@ if (is_post() && ($_POST['action'] ?? '') === 'slett_foto') {
         $stmt = $db->prepare("DELETE FROM nmmfoto WHERE Foto_ID = :id");
         $stmt->execute(['id' => $slettFotoId]);
     }
-    redirect('primus_main.php');
+
+    $rp = [];
+    if (!empty($_GET['serie']))         $rp[] = 'serie='         . urlencode($_GET['serie']);
+    if (!empty($_GET['side']))          $rp[] = 'side='          . urlencode($_GET['side']);
+    if (!empty($_GET['sok_skipsnavn'])) $rp[] = 'sok_skipsnavn=' . urlencode($_GET['sok_skipsnavn']);
+    if (!empty($_GET['sok_alle_serier'])) $rp[] = 'sok_alle_serier=1';
+    if (!empty($_GET['dato_fra']))      $rp[] = 'dato_fra='      . urlencode($_GET['dato_fra']);
+    if (!empty($_GET['dato_til']))      $rp[] = 'dato_til='      . urlencode($_GET['dato_til']);
+    if (!empty($_GET['date_field']))    $rp[] = 'date_field='    . urlencode($_GET['date_field']);
+    if (!empty($_GET['sort']))          $rp[] = 'sort='          . urlencode($_GET['sort']);
+    if (!empty($_GET['transferred']))   $rp[] = 'transferred=1';
+    redirect('primus_main.php' . ($rp ? '?' . implode('&', $rp) : ''));
+}
+
+// --------------------------------------------------
+// Kopier foto (fra landingssiden)
+// --------------------------------------------------
+if (is_post() && ($_POST['action'] ?? '') === 'kopier_foto') {
+    if (!csrf_validate()) {
+        die('Ugyldig forespørsel (CSRF).');
+    }
+
+    $kopierFotoId = filter_var($_POST['foto_id'] ?? '', FILTER_VALIDATE_INT);
+    if (!$kopierFotoId) {
+        redirect('primus_main.php');
+    }
+
+    $eksisterende = foto_hent_en($db, $kopierFotoId);
+    if (!$eksisterende || empty($eksisterende['NMM_ID'])) {
+        echo '<script>alert("FEIL: Fotoet finnes ikke eller mangler fartøy."); window.history.back();</script>';
+        exit;
+    }
+
+    $bildeFil = (string)($eksisterende['Bilde_Fil'] ?? '');
+    $serie = strlen($bildeFil) >= 8 ? substr($bildeFil, 0, 8) : '';
+
+    $nyFotoId = foto_kopier($db, $kopierFotoId);
+
+    if ($serie !== '') {
+        $nesteSerNr = primus_hent_neste_sernr_for_bruker($userId, $serie);
+        if ($nesteSerNr >= 1 && $nesteSerNr <= 999) {
+            $stmt = $db->prepare("
+                UPDATE nmmfoto
+                SET SerNr = :sernr,
+                    Bilde_Fil = :bilde_fil,
+                    URL_Bane = :url_bane
+                WHERE Foto_ID = :foto_id
+            ");
+            $stmt->execute([
+                'sernr'     => $nesteSerNr,
+                'bilde_fil' => $serie . '-' . str_pad((string)$nesteSerNr, 3, '0', STR_PAD_LEFT),
+                'url_bane'  => FOTO_URL_PREFIX . $serie . ' -001-999 Damp og Motor',
+                'foto_id'   => $nyFotoId,
+            ]);
+            primus_lagre_siste_sernr_for_bruker($userId, $serie, $nesteSerNr);
+        }
+    }
+
+    // Hent fartøynavn for kandidatlisten
+    $nmmIdKopi = (int)($eksisterende['NMM_ID'] ?? 0);
+    if ($nmmIdKopi > 0) {
+        $stmtSkip = $db->prepare("SELECT FNA FROM nmm_skip WHERE NMM_ID = :id LIMIT 1");
+        $stmtSkip->execute(['id' => $nmmIdKopi]);
+        $skipRow = $stmtSkip->fetch();
+        if ($skipRow) {
+            $_SESSION['primus_k_sok'] = (string)($skipRow['FNA'] ?? '');
+        }
+    }
+
+    // Åpne kopien i detaljvisning (H2-modus slik at fartøy kan byttes)
+    $_SESSION['primus_h2'] = 1;
+    $_SESSION['primus_iCh'] = 1;
+
+    redirect('primus_detalj.php?Foto_ID=' . $nyFotoId);
 }
 
 // --------------------------------------------------
@@ -81,6 +155,9 @@ if (is_post() && ($_POST['action'] ?? '') === 'marker_kontrollert_main') {
     }
     if (!empty($_GET['date_field'])) {
         $redirectParams[] = 'date_field=' . urlencode($_GET['date_field']);
+    }
+    if ($isAdmin && !empty($_GET['transferred'])) {
+        $redirectParams[] = 'transferred=1';
     }
 
     $redirectUrl = 'primus_main.php';
@@ -173,6 +250,14 @@ if ($dateFra !== '' && $dateTil !== '' && $dateFra > $dateTil) {
 $erTidsfilterAktivt = ($dateFra !== '' || $dateTil !== '');
 
 // --------------------------------------------------
+// Transferred-filter (kun admin)
+// --------------------------------------------------
+$filterTransferred = null;
+if ($isAdmin && isset($_GET['transferred']) && $_GET['transferred'] === '1') {
+    $filterTransferred = true;
+}
+
+// --------------------------------------------------
 // Sorteringsrekkefølge (huskes i session)
 // --------------------------------------------------
 $sortRaw = trim($_GET['sort'] ?? '');
@@ -187,7 +272,7 @@ $sortOrder = $_SESSION['primus_sort_order'] ?? 'DESC';
 $side = filter_input(INPUT_GET, 'side', FILTER_VALIDATE_INT) ?: 1;
 if ($side < 1) $side = 1;
 
-$perSide = 20;
+$perSide =15;
 $offset = ($side - 1) * $perSide;
 
 // --------------------------------------------------
@@ -208,14 +293,16 @@ if ($erSok) {
         $dateFra !== '' ? $dateFra : null,
         $dateTil !== '' ? $dateTil : null,
         $dateField,
-        $sortOrder
+        $sortOrder,
+        $filterTransferred
     );
     $totaltAntall = primus_sok_foto_etter_skipsnavn_antall(
         $sokSkipsnavn,
         $sokSerie,
         $dateFra !== '' ? $dateFra : null,
         $dateTil !== '' ? $dateTil : null,
-        $dateField
+        $dateField,
+        $filterTransferred
     );
 } elseif ($valgtSerie !== null && $valgtSerie !== '') {
     // Normal visning av serie (med/uten tidsfilter)
@@ -226,17 +313,24 @@ if ($erSok) {
         $dateFra !== '' ? $dateFra : null,
         $dateTil !== '' ? $dateTil : null,
         $dateField,
-        $sortOrder
+        $sortOrder,
+        $filterTransferred
     );
     $totaltAntall = primus_hent_totalt_antall_foto(
         (string)$valgtSerie,
         $dateFra !== '' ? $dateFra : null,
         $dateTil !== '' ? $dateTil : null,
-        $dateField
+        $dateField,
+        $filterTransferred
     );
 }
 
 $totaltSider = $totaltAntall > 0 ? (int)ceil($totaltAntall / $perSide) : 0;
+
+// Lagre gjeldende URL slik at Tilbake-knapp i primus_detalj.php kan bruke den
+if (!is_post()) {
+    $_SESSION['primus_main_last_url'] = $_SERVER['REQUEST_URI'];
+}
 
 // BASE_URL for JavaScript
 $baseUrlJs = base_url_js();
@@ -315,6 +409,30 @@ require_once __DIR__ . '/../../includes/layout_start.php';
         </form>
 
         <?php if ($isAdmin): ?>
+        <?php
+        $transferredToggleBase = [];
+        if ($valgtSerie !== null && $valgtSerie !== '') {
+            $transferredToggleBase['serie'] = $valgtSerie;
+        }
+        if ($erSok) {
+            $transferredToggleBase['sok_skipsnavn'] = $sokSkipsnavn;
+            if ($sokAllSerier) $transferredToggleBase['sok_alle_serier'] = '1';
+        }
+        if ($erTidsfilterAktivt) {
+            if ($dateFra !== '') $transferredToggleBase['dato_fra'] = $dateFra;
+            if ($dateTil !== '') $transferredToggleBase['dato_til'] = $dateTil;
+            if ($dateField !== 'Oppdatert_Tid') $transferredToggleBase['date_field'] = $dateField;
+        }
+        if ($filterTransferred === null) {
+            $transferredToggleBase['transferred'] = '1';
+            $transferredToggleUrl = 'primus_main.php?' . http_build_query($transferredToggleBase);
+            echo '<a href="' . h($transferredToggleUrl) . '" class="btn btn-warning btn-sm" title="Vis kun rader med Transferred=1">Kun overførte</a>';
+        } else {
+            $transferredToggleUrl = 'primus_main.php?' . http_build_query($transferredToggleBase);
+            echo '<a href="' . h($transferredToggleUrl) . '" class="btn btn-secondary btn-sm" title="Vis alle rader">Vis alle</a>';
+            echo '<span class="filter-active-badge" style="margin-left:0.25rem;">Overf.</span>';
+        }
+        ?>
         <button type="button" class="btn btn-primary btn-sm" onclick="showExportDialog()">
             Motiv xlsx
         </button>
@@ -333,12 +451,18 @@ require_once __DIR__ . '/../../includes/layout_start.php';
             <span class="filter-active-badge">Aktiv</span>
         <?php endif; ?>
     </button>
-    <a href="<?= base_url(); ?>manual/Brukermanual.pdf"
+    <a href="<?= base_url(); ?>/manual/Brukermanual.pdf"
        class="btn btn-info btn-sm"
        style="margin-left: 0.5rem;"
-       download="NMMPrimus_Brukermanual.pdf"
-       title="Last ned brukermanual (PDF)">
+       target="_blank"
+       title="Åpne brukermanual (PDF)">
         📖 Brukermanual
+    </a>
+    <a href="<?= base_url(); ?>/modules/primus/statistikk.php"
+       class="btn btn-secondary btn-sm"
+       style="margin-left: 0.5rem;"
+       title="Statistikk for nmmfoto">
+        📊 Statistikk
     </a>
 
     <div class="date-filter-panel" id="dateFilterPanel"
@@ -353,6 +477,9 @@ require_once __DIR__ . '/../../includes/layout_start.php';
                 <?php if ($sokAllSerier): ?>
                     <input type="hidden" name="sok_alle_serier" value="1">
                 <?php endif; ?>
+            <?php endif; ?>
+            <?php if ($filterTransferred !== null): ?>
+                <input type="hidden" name="transferred" value="1">
             <?php endif; ?>
 
             <div class="filter-row">
@@ -434,6 +561,9 @@ if ($erTidsfilterAktivt && $dateField !== 'Oppdatert_Tid') {
     $sortToggleParams['date_field'] = $dateField;
 }
 $sortToggleParams['sort'] = ($sortOrder === 'DESC') ? 'ASC' : 'DESC';
+if ($filterTransferred !== null) {
+    $sortToggleParams['transferred'] = '1';
+}
 $sortToggleUrl = 'primus_main.php?' . http_build_query($sortToggleParams);
 $sortToggleLabel = ($sortOrder === 'DESC') ? '↑ Laveste først' : '↓ Høyeste først';
 $sortToggleTitle = ($sortOrder === 'DESC') ? 'Vis laveste Bilde_Fil øverst' : 'Vis høyeste Bilde_Fil øverst';
@@ -474,6 +604,9 @@ $sortToggleTitle = ($sortOrder === 'DESC') ? 'Vis laveste Bilde_Fil øverst' : '
         if ($erTidsfilterAktivt && $dateField !== 'Oppdatert_Tid') {
             $pagingParams['date_field'] = $dateField;
         }
+        if ($filterTransferred !== null) {
+            $pagingParams['transferred'] = '1';
+        }
 
         $pagingParams['side'] = ''; // Placeholder for side-nummer
         $pagingBase = '?' . http_build_query($pagingParams);
@@ -504,6 +637,9 @@ $sortToggleTitle = ($sortOrder === 'DESC') ? 'Vis laveste Bilde_Fil øverst' : '
                     <?php if ($sokAllSerier): ?>
                         <input type="hidden" name="sok_alle_serier" value="1">
                     <?php endif; ?>
+                <?php endif; ?>
+                <?php if ($filterTransferred !== null): ?>
+                    <input type="hidden" name="transferred" value="1">
                 <?php endif; ?>
                 <label for="goto_side" class="sr-only">Gå til side</label>
                 <input
@@ -591,7 +727,7 @@ $sortToggleTitle = ($sortOrder === 'DESC') ? 'Vis laveste Bilde_Fil øverst' : '
             }
             echo '</td>';
 
-            // Kontrollert-knapp og Slett-knapp som POST-skjemaer med CSRF
+            // Kontrollert-knapp, Kopier-knapp og Slett-knapp som POST-skjemaer med CSRF
             echo '<td class="nowrap">';
             // Kontrollert-knapp
             echo '<form method="post" class="inline-form-with-margin">';
@@ -599,6 +735,13 @@ $sortToggleTitle = ($sortOrder === 'DESC') ? 'Vis laveste Bilde_Fil øverst' : '
             echo '<input type="hidden" name="action" value="marker_kontrollert_main">';
             echo '<input type="hidden" name="foto_id" value="' . $fotoId . '">';
             echo '<button type="submit" class="btn btn-sm btn-success">Kontrollert</button>';
+            echo '</form>';
+            // Kopier-knapp
+            echo '<form method="post" class="inline-form-with-margin" onsubmit="return confirm(\'Kopiere dette fotoet?\');">';
+            echo csrf_field();
+            echo '<input type="hidden" name="action" value="kopier_foto">';
+            echo '<input type="hidden" name="foto_id" value="' . $fotoId . '">';
+            echo '<button type="submit" class="btn btn-sm btn-info">Kopier</button>';
             echo '</form>';
             // Slett-knapp
             echo '<form method="post" class="inline-form" onsubmit="return confirm(\'Slette dette bildet?\');">';

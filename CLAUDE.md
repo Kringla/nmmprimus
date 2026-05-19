@@ -2,8 +2,6 @@
 
 **Teknisk referansedokument** for Claude-agenter som jobber med NMMPrimus.
 
-**VIKTIG:** [AGENTS.md](AGENTS.md) har absolutt forrang ved konflikt.
-
 ---
 
 ## 1. Prosjektoversikt
@@ -20,12 +18,14 @@ Frontend:    HTML5, minimal CSS, vanilla JS
 Miljø:       XAMPP (dev), web hosting (prod)
 ```
 
-**Prinsipp:** Funksjonalitet og korrekthet > visuell modernisering
+**Prinsipp:** Funksjonalitet og korrekthet > visuell modernisering. Access-paritet er viktigere enn forenkling.
 
 **Scope:**
 - Prosjektet er **kun** `nmmprimus`
-- **Ingen** kode/mønstre fra andre repoer
-- Autoritative kilder: Dokumenter i `nmmprimus`, eksisterende kode
+- **Ingen** kode/mønstre fra andre repoer eller generiske maler
+- Autoritative kilder: Eksisterende kode i `nmmprimus`, dokumenter i `nmmprimus`, filer eksplisitt vedlagt i chat
+- **Mangler info? Si fra før arbeid starter**
+- Vedlagte filer har **alltid prioritet** over filer i repo og skal alltid leses/benyttes selv om de ikke refereres til som «vedlagt»
 
 ---
 
@@ -78,7 +78,6 @@ nmmprimus/
 ├── login.php
 ├── logout.php
 ├── index.php
-├── AGENTS.md                   # OPERATIVE CONTRACT
 └── CLAUDE.md                   # Dette dokumentet
 ```
 
@@ -138,6 +137,18 @@ require_once __DIR__ . '/../../includes/layout_start.php';
 
 require_once __DIR__ . '/../../includes/layout_slutt.php';
 ```
+## Arbeidsprinsipper
+
+- **Ingen gjetting eller antagelser** — les alltid faktisk fil først
+- VBA-logikk: identifiser → forklar → oversett
+- Funksjonalitet og korrekthet > visuell modernisering
+- Access-paritet er viktigere enn forenkling
+- Minimal JavaScript — kun når nødvendig
+- Ingen inline CSS — bruk `assets/app.css`
+- Uklar dokumentasjon? **Stopp og avklar**
+- Vis hva du gjør, ikke bare resultatet
+- Skill analyse fra implementering
+
 ## CSS-retningslinjer
 
 - **Unngå `!important`**: Med mindre helt nødvendig
@@ -552,8 +563,7 @@ WHERE expires_at > NOW();
 
 ## 14. Når du står fast
 
-1. Sjekk [AGENTS.md](AGENTS.md)
-2. Sjekk [doc/Primus_Funksjonalitet.md](doc/Primus_Funksjonalitet.md)
+1. Sjekk [doc/Primus_Funksjonalitet.md](doc/Primus_Funksjonalitet.md)
 3. Sjekk kodkommentarer
 4. **Stopp og spør** – aldri gjett
 
@@ -565,8 +575,7 @@ WHERE expires_at > NOW();
 
 | Fil | Formål |
 |-----|--------|
-| [AGENTS.md](AGENTS.md) | Operativt kontrakt (HØYESTE AUTORITET) |
-| [CLAUDE.md](CLAUDE.md) | Dette dokumentet (teknisk referanse) |
+| [CLAUDE.md](CLAUDE.md) | Dette dokumentet (teknisk referanse og operative regler) |
 | [ROADMAP.md](ROADMAP.md) | Planlagte forbedringer og teknisk gjeld |
 | [README.md](README.md) | Prosjektoversikt |
 | [doc/Primus_Funksjonalitet.md](doc/Primus_Funksjonalitet.md) | Funksjonell beskrivelse |

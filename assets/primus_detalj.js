@@ -91,6 +91,7 @@
             kandidater.forEach(function(k) {
                 var tr = document.createElement('tr');
                 tr.className = 'kandidat-rad';
+                tr.style.fontSize = 'calc(1em - 1px)';
                 tr.dataset.nmmId = String(k.NMM_ID);
                 var fty = (k.FTY || '').trim();
                 var fna = (k.FNA || '').trim();
@@ -98,13 +99,18 @@
                 tr.dataset.navn = navn;
 
                 var td1 = document.createElement('td');
+                td1.style.cssText = 'width:20ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
                 td1.textContent = navn;
                 var td2 = document.createElement('td');
                 td2.className = 'nowrap';
                 td2.textContent = k.BYG || '';
+                var td3 = document.createElement('td');
+                td3.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+                td3.textContent = k.VER || '';
 
                 tr.appendChild(td1);
                 tr.appendChild(td2);
+                tr.appendChild(td3);
                 tbody.appendChild(tr);
             });
         }
@@ -244,6 +250,11 @@
 
                 setVal('NMM_ID', nmmId);
 
+                // Lås opp skjemaet nå som kandidat er valgt
+                if (typeof window._unlockForm === 'function') {
+                    window._unlockForm();
+                }
+
                 fetch(baseUrl + '/modules/primus/api/kandidat_data.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -296,35 +307,6 @@
             });
         }
 
-        // ------------------- MotivBeskrTillegg -------------------
-        function initMotivBeskrTillegg() {
-            var tillegg = document.getElementById('MotivBeskrTillegg');
-            var motiv = document.getElementById('MotivBeskr');
-
-            if (!tillegg || !motiv) return;
-
-            function appendTillegg() {
-                var tilleggVal = tillegg.value.trim();
-                if (tilleggVal === '') return;
-
-                var motivVal = motiv.value.trim();
-                if (motivVal === '') {
-                    motiv.value = tilleggVal;
-                } else {
-                    motiv.value = motivVal + ' ' + tilleggVal;
-                }
-            }
-
-            tillegg.addEventListener('blur', appendTillegg);
-
-            tillegg.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    appendTillegg();
-                }
-            });
-        }
-
         // ------------------- Skipsportrett button -------------------
         function initSkipsportrettButton() {
             var btn = document.getElementById('btn-leggtil-skipsportrett');
@@ -349,6 +331,73 @@
             });
         }
 
+        // ------------------- Lås skjema til kandidat er valgt -------------------
+        function initFormLock() {
+            var nmmIdEl = document.getElementById('NMM_ID');
+            if (!nmmIdEl) return;
+
+            function erLaast() {
+                var val = (nmmIdEl.value || '').trim();
+                return val === '' || val === '0';
+            }
+
+            function settLaas(laas) {
+                var form = document.getElementById('foto-form');
+                if (!form) return;
+
+                // Finn alle redigerbare felt UTENFOR kandidatpanelet
+                var kandidatPanel = document.querySelector('.flex-fixed-420');
+                var felt = form.querySelectorAll('input, textarea, select');
+
+                felt.forEach(function(el) {
+                    // Hopp over felt i kandidatpanelet (søk etc.)
+                    if (kandidatPanel && kandidatPanel.contains(el)) return;
+                    // Hopp over hidden fields og submit-knapper
+                    if (el.type === 'hidden' || el.type === 'submit') return;
+                    // Hopp over NMMSerie og SerNr (alltid redigerbare)
+                    if (el.id === 'NMMSerie' || el.id === 'SerNr') return;
+
+                    if (laas) {
+                        if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+                            el.readOnly = true;
+                        }
+                        if (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio') {
+                            el.style.pointerEvents = 'none';
+                        }
+                        el.style.opacity = '0.5';
+                    } else {
+                        // Opphev lås (iCh-logikken overstyrer etterpå for relevante felt)
+                        if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+                            // Ikke opphev readonly for felt som alltid er readonly
+                            if (el.id !== 'ValgtFartoy_vis' && el.id !== 'FTO_vis' && el.id !== 'Bilde_Fil') {
+                                el.readOnly = false;
+                            }
+                        }
+                        if (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio') {
+                            el.style.pointerEvents = '';
+                        }
+                        el.style.opacity = '';
+                    }
+                });
+
+                // Lås også Oppdater-knappen
+                var submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = laas;
+                }
+            }
+
+            // Ved sidelast
+            if (erLaast()) {
+                settLaas(true);
+            }
+
+            // Eksponér unlock-funksjon for kandidat-klikk
+            window._unlockForm = function() {
+                settLaas(false);
+            };
+        }
+
         // ------------------- Helper -------------------
         function setVal(id, val) {
             var el = document.getElementById(id);
@@ -358,9 +407,9 @@
         // ------------------- Initialize all -------------------
         initTabs();
         initKandidatSok();
+        initFormLock();
         initIChState();
         initKandidatRadKlikk();
-        initMotivBeskrTillegg();
         initSkipsportrettButton();
     };
 

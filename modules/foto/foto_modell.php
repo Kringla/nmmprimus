@@ -186,6 +186,17 @@ function foto_lagre(PDO $db, array $data): int
         }
     }
 
+    // Eksplisitt nullstill felt som ikke er tillatt i aktuell iCh slik at
+    // eksisterende DB-verdier faktisk slettes ved modusskift (f.eks. iCh 3→1).
+    if (!in_array($iCh, [3, 4, 6], true)) {
+        $filtered['Samling'] = null;
+    }
+    if (!in_array($iCh, [2, 4, 6], true)) {
+        foreach ($fotoFelter as $felt) {
+            $filtered[$felt] = null;
+        }
+    }
+
     // Normaliser numeriske/nullable felt
     // Hvis NMM_ID er en tom streng, send NULL til DB (unngå MySQL strict-feil)
     if (array_key_exists('NMM_ID', $filtered)) {
@@ -432,23 +443,39 @@ function foto_kopier(PDO $db, int $fotoId): int
     unset($foto['Foto_ID']);
     $foto['UUID'] = generate_uuid_v4(); // Generate NEW UUID for copy
 
-    // Nullstill Bildehistorikk-felter til database defaults
-    // (fanen "Bildehistorikk" i primus_detalj.php)
-    $foto['FotoTidFra'] = null;
-    $foto['FotoTidTil'] = null;
-    $foto['FotoSted'] = null;
-    $foto['Aksesjon'] = 0;
+    // Bevar: Hendelse, Aksesjon, Fotografi, Fotograf, FotoFirma,
+    //        FotoTidFra, FotoTidTil, FotoSted, Samling
+    // (kopieres som-er fra kildefotoet hvis de har verdier)
+
+    // FriKopi beholdes som 1 (standard for nye kopier uten samlingsstatus)
     $foto['FriKopi'] = 1;
-    $foto['Samling'] = null;
-    $foto['Fotografi'] = 0;
-    $foto['Fotograf'] = null;
-    $foto['FotoFirma'] = null;
 
     // Nullstill referanse-felter i Øvrige-fanen til tomme
     $foto['ReferFArk'] = null;
     $foto['ReferNeg'] = null;
 
-    // SerNr håndteres i primus_detalj.php (Access: Me!SerNr = iSer)
+    // Beregn iCh fra kildefotoets feltverdier slik at foto_lagre hvitelister
+    // alle relevante felt korrekt – uavhengig av session-tilstand.
+    $harFoto = (
+        trim((string)($foto['Fotograf']   ?? '')) !== '' ||
+        trim((string)($foto['FotoFirma']  ?? '')) !== '' ||
+        trim((string)($foto['FotoTidFra'] ?? '')) !== '' ||
+        trim((string)($foto['FotoTidTil'] ?? '')) !== '' ||
+        trim((string)($foto['FotoSted']   ?? '')) !== ''
+    );
+    $harSamling = trim((string)($foto['Samling'] ?? '')) !== '';
+
+    if ($harSamling && $harFoto) {
+        $foto['iCh'] = 4;
+    } elseif ($harSamling) {
+        $foto['iCh'] = 3;
+    } elseif ($harFoto) {
+        $foto['iCh'] = 2;
+    } else {
+        $foto['iCh'] = 1;
+    }
+
+    // SerNr håndteres i primus_detalj.php / primus_main.php
 
     // Try saving; if DB error occurs, persist debug info in session and redirect
     try {
