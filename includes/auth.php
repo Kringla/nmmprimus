@@ -17,7 +17,10 @@ require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/../config/constants.php';  // BASE_URL
 
 // Start session hvis ikke startet
+// Samme cookie-domene som session_check.php, slik at det ikke oppstar
+// to ulike PHPSESSID-cookies (ett host-only, ett .skipsweb.no-scopet)
 if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_set_cookie_params(['domain' => '.skipsweb.no', 'path' => '/', 'secure' => true, 'httponly' => true]);
     session_start();
 }
 
@@ -246,9 +249,10 @@ function try_remember_me_login(): bool
     // Regenerer session-id ved reautentisering
     session_regenerate_id(true);
 
-    $_SESSION['user_id'] = (int)$user['user_id'];
-    $_SESSION['email']   = $user['email'];
-    $_SESSION['role']    = $user['role'] ?? 'user';
+    $_SESSION['user_id']       = (int)$user['user_id'];
+    $_SESSION['email']        = $user['email'];
+    $_SESSION['role']         = $user['role'] ?? 'user';
+    $_SESSION['authenticated'] = true;
 
     touch_user_last_used((int)$user['user_id']);
 
@@ -305,9 +309,10 @@ function login(string $email, string $password, bool $rememberMe = false): bool
     touch_user_last_used((int)$user['user_id']);
 
     // Sett session
-    $_SESSION['user_id'] = (int)$user['user_id'];
-    $_SESSION['email']   = $user['email'];
-    $_SESSION['role']    = $user['role'] ?? 'user';
+    $_SESSION['user_id']       = (int)$user['user_id'];
+    $_SESSION['email']        = $user['email'];
+    $_SESSION['role']         = $user['role'] ?? 'user';
+    $_SESSION['authenticated'] = true;
 
     if ($rememberMe) {
         issue_remember_me_token((int)$user['user_id']);
