@@ -11,11 +11,20 @@
  * repoets egen loginside.
  */
 
-session_set_cookie_params(['domain' => '.skipsweb.no', 'path' => '/', 'secure' => true, 'httponly' => true]);
-session_start();
+// Portal-SSO gjelder kun i produksjon på skipsweb.no (HTTPS).
+// Lokalt (XAMPP/localhost) hopper vi over denne sjekken og lar
+// includes/auth.php sin egen session-innlogging styre tilgang,
+// ellers oppstår en redirect-loop mot login.php (authenticated
+// blir aldri satt når cookie-domenet/HTTPS ikke matcher).
+$host = $_SERVER['HTTP_HOST'] ?? '';
 
-if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
-    // Ikke innlogget via portal — send til repoets egen login
-    header('Location: login.php');
-    exit;
+if (str_contains($host, 'skipsweb.no')) {
+    session_set_cookie_params(['domain' => '.skipsweb.no', 'path' => '/', 'secure' => true, 'httponly' => true]);
+    session_start();
+
+    if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
+        // Ikke innlogget via portal — send til repoets egen login
+        header('Location: login.php');
+        exit;
+    }
 }
