@@ -40,6 +40,10 @@ if (!isset($pageTitle)) {
             </div>
             <nav class="site-nav">
                 <?php if ($cu): ?>
+                    <?php if ($cu['role'] === 'admin'): ?>
+                        <a class="btn btn-link nav-cta" href="<?= BASE_URL; ?>/modules/primus/primus_main.php">NMM Primus</a>
+                        <a class="btn btn-link nav-cta" href="<?= BASE_URL; ?>/modules/admin/bruker_admin.php">Brukeradministrasjon</a>
+                    <?php endif; ?>
                     <span class="nav-user">
                         <?= h((string)$cu['email']); ?> (<?= h((string)$cu['role']); ?>)
                     </span>

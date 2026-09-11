@@ -1,7 +1,7 @@
 # NMMPrimus Brukerhåndbok
 
-**Versjon:** 2.0
-**Dato:** 2026-05-06
+**Versjon:** 2.1
+**Dato:** 2026-09-11
 **System:** NMMPrimus - Maritim fotoarkiv-forvaltning
 
 ---
@@ -60,6 +60,8 @@ Når du logger inn første gang, kommer du til **Landingssiden** hvor du kan:
 - Se eksisterende foto i den valgte serien
 - Opprette nye foto
 - Slette eller redigere eksisterende foto
+
+**Tips:** Knappen **"📖 Brukermanual"** øverst på landingssiden åpner denne håndboken som PDF i en ny fane.
 
 ---
 
@@ -145,9 +147,9 @@ Klikk **"Nytt foto i valgt serie"** for å gå til detaljvisning i H2-modus (opp
 #### Toggle Transferred (kun admin)
 Klikk **checkbox** i Overført-kolonnen for å veksle status. Brukes for å markere foto som eksportert til arkivsystem.
 
-### Statistikk (kun admin)
+### Statistikk
 
-Klikk **"📊 Statistikk"** for å åpne statistikksiden med oversikt over nmmfoto-tabellen.
+Klikk **"📊 Statistikk"** for å åpne statistikksiden med oversikt over nmmfoto-tabellen (totalt antall, antall per bildeserie og et fritt tidsfilter). Tilgjengelig for alle innloggede brukere, ikke bare admin.
 
 ---
 
@@ -184,7 +186,9 @@ Klikk **"📊 Statistikk"** for å åpne statistikksiden med oversikt over nmmfo
 
 - **H2-modus** (nytt foto): Klikk på en rad for å velge fartøy
 - **H1-modus** (eksisterende foto): Klikk på en rad for å bytte fartøy (krever bekreftelse)
-- Søk oppdateres med knappen **"Søk"** eller Enter
+- Søk oppdateres med knappen **"Søk"** eller Enter (søket kjøres direkte uten å laste siden på nytt)
+
+**Viktig for nye foto:** Resten av skjemaet er låst (grået ut) helt til et fartøy er valgt fra kandidatlisten. "Oppdater"-knappen er også deaktivert inntil da.
 
 ### Faner
 
@@ -204,14 +208,20 @@ Klikk **"📊 Statistikk"** for å åpne statistikksiden med oversikt over nmmfo
 
 Øverst velger du **Hendelsesmodus** (se pkt. 8).
 
-**Hendelse**: Fritekst-beskrivelse (alltid redigerbar)
+**Hendelse**: Alltid skrivebeskyttet. Teksten genereres automatisk ut fra valgt hendelsesmodus (hentet fra hendelsestype-registeret) og oppdateres når du bytter modus. Kan ikke skrives inn manuelt.
 
 **Samling** (kun i modus 3 eller 4):
 - Velg fra dropdown eller skriv inn egendefinert verdi
+- Foreslår automatisk "C2-Johnsen, Per-Erik" hvis feltet er tomt når du bytter til modus 3 eller 4
 
 **Fotoinformasjon** (kun i modus 2 eller 4):
 - **Fotograf**, **Fotofirma**, **Tid (Fra)**, **Tid (Til)**, **Sted tatt**
+- Fotograf foreslås automatisk med prefikset "10F:" hvis feltet er tomt – skriv fotografens navn etter prefikset
 - FotoTidTil arver automatisk verdien fra FotoTidFra hvis den er tom
+
+**Fri kopi**: Vises som egen avkrysningsboks. Settes/låses automatisk basert på hendelsesmodus (av ved Samling/Foto+Samling).
+
+**Aksesjon** og **Fotografi** er ikke egne felt i skjemaet – de beregnes automatisk ut fra hendelsesmodus og lagres i bakgrunnen. De vises som skrivebeskyttede avkrysningsbokser i fotolisten på landingssiden.
 
 **NB**: Felt som ikke er tillatt i valgt modus nullstilles i databasen ved lagring.
 
@@ -235,9 +245,11 @@ Klikk **"📊 Statistikk"** for å åpne statistikksiden med oversikt over nmmfo
 
 ![Venstre sidepanel - Kandidater](Nytt.png)
 
+**NB:** Skjemaet er låst (grået ut) helt til fartøy er valgt.
+
 1. I **kandidatpanelet til venstre**: Søk etter fartøynavn (min. 3 tegn)
 2. Klikk **"Velg"** på ønsket fartøy
-3. Systemet fyller automatisk ut: MotivBeskr, MotivType, MotivEmne, MotivKriteria, Avbildet
+3. Systemet fyller automatisk ut: MotivBeskr, MotivType, MotivEmne, MotivKriteria, Avbildet, og låser opp resten av skjemaet
 
 ### Trinn 3: Velg hendelsesmodus
 1. Gå til fanen **Bildehistorikk**
@@ -281,8 +293,8 @@ Klikk **"📊 Statistikk"** for å åpne statistikksiden med oversikt over nmmfo
 
 ### Når brukes kopier?
 Bruk kopier-funksjonen når du skal registrere flere foto med:
-- Samme fartøy og motivbeskrivelse
-- Men ulik bildehistorikk
+- Samme fartøy, motivbeskrivelse og (normalt) samme bildehistorikk
+- Men nytt SerNr/Bildefil
 
 ### Fremgangsmåte fra detaljvisning
 
@@ -291,11 +303,12 @@ Bruk kopier-funksjonen når du skal registrere flere foto med:
 3. Bekreft kopieringen
 4. Systemet:
    - Kopierer motivdata fra kildefotoet
-   - Nullstiller: Fotograf, FotoFirma, FotoTidFra/Til, FotoSted, Samling, ReferFArk, ReferNeg
-   - Setter FriKopi = 1
+   - **Beholder** Hendelse, Aksesjon, Fotografi, Fotograf, Fotofirma, Tid (Fra/Til), Sted tatt og Samling som de er i kildefotoet
+   - Nullstiller kun: Referanse NMM (ReferNeg), Referanse fotograf (ReferFArk)
+   - Setter Fri kopi = Ja
    - Genererer nytt SerNr
-   - Åpner kopien for redigering
-5. Fyll inn ny bildehistorikk og klikk **"Oppdater"**
+   - Åpner kopien for redigering (fartøy kan byttes via kandidatpanelet)
+5. Juster bildehistorikk om nødvendig og klikk **"Oppdater"**
 
 ### Alternativ: Lagre og kopier
 
@@ -345,26 +358,35 @@ Hendelsesmodus styrer hvilke felt som er redigerbare i Bildehistorikk-fanen, og 
 ### Tilgang
 Kun brukere med **admin-rolle** har tilgang til Excel-eksport.
 
+**Filformat:** Begge eksportene lager en semikolon-separert **CSV-fil** (ikke ekte .xlsx), som åpnes direkte i Excel. **Viktig:** Ikke la Excel konvertere/formatere kolonner ved åpning – da forsvinner ledende nuller i tallfelt (f.eks. i Bildefil).
+
 ### Motiv xlsx – eksport av uoverførte foto
 
-Brukes for å eksportere foto som ennå ikke er overført til arkivsystemet.
+Brukes for å eksportere foto som ennå ikke er overført til arkivsystemet (Transferred = Nei).
 
 1. Klikk **"Motiv xlsx"** i verktøylinjen
 2. Fyll inn **SerNr fra** og **SerNr til** (maks 1000 poster)
-3. Klikk **"Eksporter"** – Excel-fil lastes ned
-4. Etter vellykket eksport: marker foto som overført via **"Toggle Transferred"**
+3. Klikk **"Eksporter"** – CSV-filen lastes ned
+4. Du sendes automatisk til en **bekreftelsesside**:
+   - **"✓ Bekreft eksport og marker som overført"** – markerer alle eksporterte foto som Overført i databasen
+   - **"✗ Avbryt"** – ingen endringer lagres, foto forblir uoverført
+5. Kontroller at CSV-filen faktisk ble lastet ned korrekt før du bekrefter
 
-**Eksporterte felt:** BildeId, URL_Bane, MotivBeskr, MotivType, MotivEmne, MotivKriteria, Svarthvitt, Aksesjon, Samling, Fotografi, FotoFirma, Foto_Fra, Foto_Til, FotoSted, Prosess, Referansenr, FotografsRefNr, Plassering, Status, Tilstand, FriKopi, Fart_UUID, Merknad
+**Eksporterte kolonner:** IDNummer, URL_Bane, MotivBeskr, MotivType, MotivEmne, MotivKlasse, Aksesjon, Aks.SamlingskaperJP, Fotografering, FotoJP, Foto_Fra, Foto_Til, FotoSted, EgenRefNr, EksRefNr, Plassering, PlassFriTekst, Tilstand, Rettigheter, KNAutoritet, AndreOpplysninger, Tek.Attributt, Prosess, Status
 
 ### Fotoeks xlsx – eksport av overførte foto
 
-Brukes for å eksportere foto som allerede er markert som overført (Transferred = Ja).
+Brukes for å eksportere foto som allerede er markert som overført (Transferred = Ja). Oppdaterer ikke Overført-status.
 
 1. Klikk **"Fotoeks xlsx"**
-2. Fyll inn SerNr-område
-3. Klikk **"Eksporter"**
+2. Fyll inn SerNr-område (maks 1000 poster)
+3. Klikk **"Eksporter"** – CSV-filen lastes ned direkte (ingen bekreftelsesside)
+
+**Eksporterte kolonner:** IDNummer, ParentID, Objekttype, Plassering, PlassFriTekst, Prosess, Status, Tek.Attributt, Antall
 
 ### Toggle Transferred (kun admin)
+
+Brukes til å manuelt overstyre Overført-status utenom eksportflyten (f.eks. rette en feilmarkering).
 
 - Klikk **checkbox** i Overført-kolonnen på en rad for å veksle status
 - Klikk **"Kun overførte"** for å filtrere og kun vise overførte rader
@@ -380,21 +402,22 @@ Kun brukere med **admin-rolle** har tilgang til brukeradministrasjon.
 ### Opprett ny bruker
 
 1. Klikk **"Brukeradministrasjon"** i menyen
-2. Klikk **"Opprett ny bruker"**
-3. Fyll inn e-postadresse, passord (min. 6 tegn) og rolle
-4. Klikk **"Opprett bruker"**
+2. Fyll inn e-postadresse, passord og rolle i skjemaet **"Opprett ny bruker"**
+3. Klikk **"Opprett"**
+
+**Passordkrav:** Minst 8 tegn, og må inneholde minst én stor bokstav, én liten bokstav, ett tall og ett spesialtegn (f.eks. !@#$%^&*).
 
 ### Rediger bruker
 
 1. Finn brukeren i listen og klikk **"Rediger"**
-2. Endre e-postadresse og/eller rolle
-3. Klikk **"Lagre endringer"**
+2. Endre e-postadresse og/eller rolle i dialogboksen
+3. Klikk **"Lagre"**
 
 ### Endre passord
 
-1. Finn brukeren og klikk **"Endre passord"**
-2. Skriv inn nytt passord (min. 6 tegn)
-3. Klikk **"Oppdater passord"**
+1. Finn brukeren og klikk **"Passord"**
+2. Skriv inn nytt passord (samme krav som ved opprettelse – se over)
+3. Klikk **"Endre passord"**
 
 ### Deaktivere / aktivere bruker
 
@@ -419,6 +442,14 @@ Felt som ikke tilhører valgt modus nullstilles i databasen ved lagring. Dette e
 ### Hvorfor kan jeg ikke redigere Fotograf-feltet?
 
 Fotograf er kun redigerbart i hendelsesmodus **2 eller 4**. Velg riktig modus i Bildehistorikk-fanen.
+
+### Hvorfor kan jeg ikke skrive i Hendelse-feltet?
+
+Hendelse er alltid skrivebeskyttet. Teksten genereres automatisk ut fra valgt hendelsesmodus og kan ikke redigeres manuelt.
+
+### Hvorfor er hele skjemaet grått/låst når jeg oppretter et nytt foto?
+
+Skjemaet låses til et fartøy er valgt fra kandidatlisten til venstre. Søk og velg fartøy for å låse opp resten av feltene.
 
 ### Hvordan endre SerNr på et eksisterende foto?
 
@@ -488,5 +519,5 @@ Systemet søker fra ditt forrige SerNr til 999, deretter fra 1 – og velger fø
 
 ---
 
-**Versjon:** 2.0
-**Sist oppdatert:** 2026-05-06
+**Versjon:** 2.1
+**Sist oppdatert:** 2026-09-11
