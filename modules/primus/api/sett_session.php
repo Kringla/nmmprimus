@@ -52,8 +52,10 @@ foreach ($_POST as $key => $value) {
             break;
 
         case 'primus_k_sok':
-            // Kandidat-søk: lagres som en kort streng (trimmet, maks 200 tegn).
-            $s = trim((string)$value);
+            // Kandidat-søk: lagres som en kort streng (maks 200 tegn).
+            // Kun ledende mellomrom fjernes: avsluttende mellomrom er meningsbærende
+            // for prefiks-søket ("Knut " skal ikke matche "Knutsen").
+            $s = ltrim((string)$value);
             if ($s === '') {
                 // Tøm session-nøkkelen om tom streng
                 unset($_SESSION[$key]);

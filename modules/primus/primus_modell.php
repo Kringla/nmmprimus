@@ -208,7 +208,10 @@ function primus_sok_foto_etter_skipsnavn(
         WHERE s.FNA LIKE :skipsnavn
     ";
 
-    $params = ['skipsnavn' => '%' . $skipsnavn . '%'];
+    // Prefiks-søk ("begynner med"): bevisst uten ledende '%', slik at
+    // avsluttende mellomrom i $skipsnavn er meningsbærende (f.eks. "Knut "
+    // matcher "Knut Hansen" men ikke "Knute Nelson").
+    $params = ['skipsnavn' => $skipsnavn . '%'];
 
     if ($serie !== null && $serie !== '') {
         $sql .= " AND LEFT(f.Bilde_Fil, 8) = :serie ";
@@ -282,7 +285,8 @@ function primus_sok_foto_etter_skipsnavn_antall(
         WHERE s.FNA LIKE :skipsnavn
     ";
 
-    $params = ['skipsnavn' => '%' . $skipsnavn . '%'];
+    // Prefiks-søk ("begynner med"): se primus_sok_foto_etter_skipsnavn().
+    $params = ['skipsnavn' => $skipsnavn . '%'];
 
     if ($serie !== null && $serie !== '') {
         $sql .= " AND LEFT(f.Bilde_Fil, 8) = :serie ";
@@ -452,8 +456,11 @@ function primus_hent_skip_liste(string $sok = ''): array
 
     $params = [];
     if ($sok !== '') {
+        // Prefiks-søk ("begynner med"): bevisst uten ledende '%', slik at
+        // avsluttende mellomrom i $sok er meningsbærende (f.eks. "Knut "
+        // matcher "Knut Hansen" men ikke "Knutsen").
         $sql .= " WHERE s.FNA LIKE :sok ";
-        $params['sok'] = '%' . $sok . '%';
+        $params['sok'] = $sok . '%';
     }
 
     $sql .= " ORDER BY s.FNA, s.BYG LIMIT 250 ";

@@ -21,7 +21,9 @@ if (!is_post()) {
     exit;
 }
 
-$sok = trim((string)($_POST['sok'] ?? ''));
+// Kun ledende mellomrom fjernes: avsluttende mellomrom er meningsbærende
+// for prefiks-søket i primus_hent_skip_liste() ("Knut " skal ikke matche "Knutsen").
+$sok = ltrim((string)($_POST['sok'] ?? ''));
 $kandidater = primus_hent_skip_liste($sok);
 
 echo json_encode(['ok' => true, 'data' => $kandidater], JSON_UNESCAPED_UNICODE);

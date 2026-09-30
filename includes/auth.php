@@ -18,9 +18,17 @@ require_once __DIR__ . '/../config/constants.php';  // BASE_URL
 
 // Start session hvis ikke startet
 // Samme cookie-domene som session_check.php, slik at det ikke oppstar
-// to ulike PHPSESSID-cookies (ett host-only, ett .skipsweb.no-scopet)
+// to ulike PHPSESSID-cookies (ett host-only, ett .skipsweb.no-scopet).
+// Domene+secure gjelder kun på skipsweb.no (prod); lokalt (XAMPP/localhost)
+// avviser nettleseren ellers cookien (domene/HTTPS matcher ikke), og
+// require_login() faller da tilbake på "husk meg" på hvert request.
 if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_set_cookie_params(['domain' => '.skipsweb.no', 'path' => '/', 'secure' => true, 'httponly' => true]);
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    if (str_contains($host, 'skipsweb.no')) {
+        session_set_cookie_params(['domain' => '.skipsweb.no', 'path' => '/', 'secure' => true, 'httponly' => true]);
+    } else {
+        session_set_cookie_params(['path' => '/', 'httponly' => true]);
+    }
     session_start();
 }
 

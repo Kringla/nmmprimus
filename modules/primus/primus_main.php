@@ -217,7 +217,9 @@ if (is_post() && ($_POST['action'] ?? '') === 'nytt_foto') {
 // --------------------------------------------------
 // Søk etter skipsnavn
 // --------------------------------------------------
-$sokSkipsnavn = trim((string)($_GET['sok_skipsnavn'] ?? ''));
+// Kun ledende mellomrom fjernes: avsluttende mellomrom er meningsbærende
+// for prefiks-søket i primus_sok_foto_etter_skipsnavn() ("Knut " skal ikke matche "Knute Nelson").
+$sokSkipsnavn = ltrim((string)($_GET['sok_skipsnavn'] ?? ''));
 $sokAllSerier = isset($_GET['sok_alle_serier']) && $_GET['sok_alle_serier'] === '1';
 $erSok = ($sokSkipsnavn !== '' && strlen($sokSkipsnavn) >= 3);
 
@@ -1181,9 +1183,11 @@ function validateGotoPage() {
                 method: 'POST',
                 headers: {'Content-Type':'application/x-www-form-urlencoded'},
                 body: 'primus_h2=0'
-            }).catch(function(){});
-
-            window.location.href = 'primus_detalj.php?Foto_ID=' + fotoId;
+            })
+            .catch(function(){})
+            .finally(function() {
+                window.location.href = 'primus_detalj.php?Foto_ID=' + fotoId;
+            });
         });
     });
 

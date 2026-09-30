@@ -43,20 +43,25 @@
 
             function doKandidatSok() {
                 if (!sokInput) return;
-                var val = sokInput.value.trim();
+                // Kun ledende mellomrom fjernes: avsluttende mellomrom er meningsbærende
+                // for prefiks-søket ("Knut " skal ikke matche "Knutsen").
+                var val = sokInput.value.replace(/^\s+/, '');
 
-                // Lagre søk i session
+                // Lagre søk i session, deretter hent kandidater via AJAX (ingen side-reload).
+                // Sekvensielt (ikke parallelt) for å unngå at to samtidige requester
+                // begge trigger sesjons-/"husk meg"-revalidering og kolliderer.
                 fetch(baseUrl + '/modules/primus/api/sett_session.php', {
                     method: 'POST',
                     headers: {'Content-Type':'application/x-www-form-urlencoded'},
                     body: 'primus_k_sok=' + encodeURIComponent(val)
-                }).catch(function(){});
-
-                // Hent kandidater via AJAX (ingen side-reload)
-                fetch(baseUrl + '/modules/primus/api/kandidat_sok.php', {
-                    method: 'POST',
-                    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-                    body: 'sok=' + encodeURIComponent(val)
+                })
+                .catch(function(){})
+                .then(function() {
+                    return fetch(baseUrl + '/modules/primus/api/kandidat_sok.php', {
+                        method: 'POST',
+                        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                        body: 'sok=' + encodeURIComponent(val)
+                    });
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(resp) {
@@ -122,18 +127,21 @@
                 var valgt = document.querySelector('input[name="iCh"]:checked');
                 if(!valgt) return;
 
-                // Lagre iCh til session
+                // Lagre iCh til session, deretter hent felt-tilstander fra foto_state.php.
+                // Sekvensielt (ikke parallelt) for å unngå at to samtidige requester
+                // begge trigger sesjons-/"husk meg"-revalidering og kolliderer.
                 fetch(baseUrl + '/modules/primus/api/sett_session.php', {
                     method:'POST',
                     headers:{'Content-Type':'application/x-www-form-urlencoded'},
                     body:'primus_iCh=' + encodeURIComponent(valgt.value)
-                }).catch(function(){});
-
-                // Hent felt-tilstander fra foto_state.php
-                fetch(baseUrl + '/modules/foto/api/foto_state.php', {
-                    method:'POST',
-                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-                    body:'foto_id=' + fotoId + '&iCh=' + encodeURIComponent(valgt.value)
+                })
+                .catch(function(){})
+                .then(function() {
+                    return fetch(baseUrl + '/modules/foto/api/foto_state.php', {
+                        method:'POST',
+                        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                        body:'foto_id=' + fotoId + '&iCh=' + encodeURIComponent(valgt.value)
+                    });
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(resp) {

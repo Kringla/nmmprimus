@@ -281,7 +281,9 @@ if (isset($_SESSION['primus_tab'])) {
 // Kandidatsøk (venstre panel) – alltid synlig
 // --------------------------------------------------
 // Arv søket fra GET hvis oppgitt, ellers fra forrige sesjon (primus_k_sok)
-$kandidatSok = trim((string)($_GET['k_sok'] ?? ($_SESSION['primus_k_sok'] ?? '')));
+// Kun ledende mellomrom fjernes: avsluttende mellomrom er meningsbærende
+// for prefiks-søket ("Knut " skal ikke matche "Knutsen").
+$kandidatSok = ltrim((string)($_GET['k_sok'] ?? ($_SESSION['primus_k_sok'] ?? '')));
 $kandidater = primus_hent_skip_liste($kandidatSok);
 
 // --------------------------------------------------

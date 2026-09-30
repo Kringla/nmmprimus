@@ -19,7 +19,9 @@ if ((!$fotoId && !$nyRad) || $ret === '') {
     redirect(BASE_URL . '/modules/primus/primus_main.php');
 }
 
-$sok = trim((string)($_GET['sok'] ?? ''));
+// Kun ledende mellomrom fjernes: avsluttende mellomrom er meningsbærende
+// for prefiks-søket i primus_hent_skip_liste() ("Knut " skal ikke matche "Knutsen").
+$sok = ltrim((string)($_GET['sok'] ?? ''));
 $liste = primus_hent_skip_liste($sok);
 
 // Beregn tilbake-URL med samme logikk som Velg-knappen
